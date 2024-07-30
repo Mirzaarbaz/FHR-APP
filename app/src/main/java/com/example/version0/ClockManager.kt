@@ -35,20 +35,6 @@ class ClockManager(private val clockTextView: TextView) {
         clockHandler.removeCallbacks(clockRunnable)
     }
 
-    private fun getCurrentTime(): String {
-        // Get current time in milliseconds
-        val currentTimeMillis = System.currentTimeMillis()
-
-        // Create a Date object using the current time
-        val currentDate = Date(currentTimeMillis)
-
-        // Define a date format
-        val dateFormat = SimpleDateFormat("HH : mm a", Locale.getDefault())
-
-        // Format the Date object to a string
-        return dateFormat.format(currentDate)
-    }
-
     private fun updateClock() {
         // Calculate hours, minutes, and seconds
         val hours = secondsCount / 3600
@@ -58,7 +44,7 @@ class ClockManager(private val clockTextView: TextView) {
         // Format the time
         val formattedTime = String.format("%02d : %02d : %02d", hours, minutes, seconds)
 
-        // Update the TextView with the current time
+        // Update the TextView with the formatted time
         clockTextView.text = formattedTime
 
         // Increment the seconds count

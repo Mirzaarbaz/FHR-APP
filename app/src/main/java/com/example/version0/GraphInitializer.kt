@@ -2,13 +2,15 @@ package com.example.version0
 
 // GraphInitializer.kt
 
+import android.content.Context
 import android.graphics.Color
 import com.jjoe64.graphview.GraphView
 import com.jjoe64.graphview.series.DataPoint
 import com.jjoe64.graphview.series.LineGraphSeries
 import com.jjoe64.graphview.DefaultLabelFormatter
+import androidx.core.content.ContextCompat
 
-class GraphInitializer(private val graph: GraphView) {
+class GraphInitializer(private val context: Context, private val graph: GraphView) {
     private val series: LineGraphSeries<DataPoint> = LineGraphSeries()
 
     init {
@@ -30,11 +32,11 @@ class GraphInitializer(private val graph: GraphView) {
         // Add two horizontal lines
         val lineAt120 =
             LineGraphSeries(arrayOf(DataPoint(0.0, 120.0), DataPoint(8.0, 120.0)))
-        lineAt120.color = Color.RED
+        lineAt120.color = Color.MAGENTA
 
         val lineAt160 =
             LineGraphSeries(arrayOf(DataPoint(0.0, 160.0), DataPoint(8.0, 160.0)))
-        lineAt160.color = Color.RED
+        lineAt160.color = Color.MAGENTA
 
         // Add the series to the graph
         graph.addSeries(series)
@@ -75,4 +77,14 @@ class GraphInitializer(private val graph: GraphView) {
             graph.invalidate()
         }
     }
+
+    fun addDataPoint(value: Double) {
+        // Append data point
+        series.appendData(DataPoint(series.highestValueX + 1, value), true, 8)
+
+        val color = if (value < 120.0 || value > 160.0) Color.RED else ContextCompat.getColor(context, R.color.dark_green)
+
+        series.color = color
+    }
+
 }

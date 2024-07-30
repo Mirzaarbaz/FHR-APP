@@ -9,7 +9,9 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import android.media.RingtoneManager
+import android.widget.RemoteViews
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 
 object NotificationUtils {
     private const val CHANNEL_ID = "my_channel_id"
@@ -31,21 +33,19 @@ object NotificationUtils {
     fun showNotification(context: Context) {
         createNotificationChannel(context)
 
-        // Set custom vibration pattern
-        val vibrationPattern = longArrayOf(0, 500, 1000, 500) // Vibrate for 500ms, then pause for 1000ms, repeat
+        val vibrationPattern = longArrayOf(0, 500, 1000, 500)
+        val contentView = RemoteViews(context.packageName, R.layout.custom_notification)
 
-        // Create the notification
         val notificationBuilder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setContentTitle("Say Fetal Heart Rate")
-            .setContentText("Listening...")
-            .setSmallIcon(android.R.drawable.ic_dialog_info) // Test with a default icon
-
+            .setCustomContentView(contentView) // Set custom layout
+            .setSmallIcon(R.drawable.baseline_graphic_eq_black_18)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_CALL)
-            .setVibrate(vibrationPattern) // Set custom vibration pattern
+            .setVibrate(vibrationPattern)
             .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
+            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            .setAutoCancel(true)
 
-        // Show the notification
         val notificationManagerCompat = NotificationManagerCompat.from(context)
         if (ActivityCompat.checkSelfPermission(
                 context,
@@ -55,6 +55,8 @@ object NotificationUtils {
             notificationManagerCompat.notify(NOTIFICATION_ID, notificationBuilder.build())
         }
     }
+
+
 
     fun cancelNotification(context: Context) {
         val notificationManager =
