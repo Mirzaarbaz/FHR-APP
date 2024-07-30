@@ -21,6 +21,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
 
     private lateinit var speechRecognitionManager: SpeechRecognitionManager
     private lateinit var textToSpeech: TextToSpeech
+    private lateinit var userNameDialog: UserNameDialog
 
     private lateinit var yourButton: Button
     private lateinit var shareButton: ImageButton
@@ -35,6 +36,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
 
     private lateinit var graphInitializer: GraphInitializer
     private var speechCounter: Int = 1
+    private var userName: String? = null
+    private var isFirstClick = true
 
     @RequiresApi(Build.VERSION_CODES.Q)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -63,17 +66,28 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         speechRecognitionManager = SpeechRecognitionManager(this)
         speechRecognitionManager.setResultListener(this)
 
+        // Initialize UserNameDialog
+        userNameDialog = UserNameDialog(this) { name ->
+            userName = name
+            startListening()
+        }
 
         // Setup PDF sharing
         val pdfUtils = PDFUtils(this)
         shareButton.setOnClickListener {
-            pdfUtils.sharePDF(clockTextView, graph, speechLogTable)
+            pdfUtils.sharePDF(clockTextView, graph, speechLogTable, userName)
         }
 
         yourButton.setOnClickListener {
-            clockManager.startClock()
-            checkAndRequestPermissions()
+            if (isFirstClick) {
+                userNameDialog.show()
+                isFirstClick = false
+            } else {
+                clockManager.startClock()
+                checkAndRequestPermissions()
+            }
         }
+
     }
 
     override fun onDestroy() {
@@ -85,7 +99,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
 
     private fun checkAndRequestPermissions() {
         if (PermissionUtils.hasNotificationPermission(this)) {
-//            NotificationUtils.showNotification(this)
+            // NotificationUtils.showNotification(this)
         } else {
             PermissionUtils.requestNotificationPermission(this)
         }
@@ -98,27 +112,22 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
     }
 
     private fun startListening() {
-
         val utteranceId = UUID.randomUUID().toString()
         val message = "Say fetal heart rate"
         textToSpeech.speak(message, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
 
-//showNotification()
         textToSpeech.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) {}
 
             override fun onDone(utteranceId: String?) {
                 runOnUiThread {
-
                     ButtonStyleUtils.setListeningStyle(this@MainActivity, yourButton, card1)
                     speechRecognitionManager.startSpeechRecognition()
-
                 }
             }
 
             @Deprecated("Deprecated in Java")
-            override fun onError(utteranceId: String?) {
-            }
+            override fun onError(utteranceId: String?) {}
         })
     }
 

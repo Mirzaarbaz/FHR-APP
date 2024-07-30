@@ -6,11 +6,13 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color
 import android.os.Environment
 import android.widget.TableLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.FileProvider
+import com.itextpdf.text.BaseColor
 import com.itextpdf.text.Document
 import com.itextpdf.text.Element
 import com.itextpdf.text.Image
@@ -24,8 +26,8 @@ import java.io.FileOutputStream
 
 class PDFUtils(private val context: Context) {
 
-    fun sharePDF(clockTextView: TextView, graph: GraphView, speechLogTable: TableLayout) {
-        val pdfFilePath = generatePDF(clockTextView, graph, speechLogTable)
+    fun sharePDF(clockTextView: TextView, graph: GraphView, speechLogTable: TableLayout, userName: String?) {
+        val pdfFilePath = generatePDF(clockTextView, graph, speechLogTable, userName)
         if (pdfFilePath != null) {
             val file = File(pdfFilePath)
             val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
@@ -42,7 +44,7 @@ class PDFUtils(private val context: Context) {
         }
     }
 
-    private fun generatePDF(clockTextView: TextView, graph: GraphView, speechLogTable: TableLayout): String? {
+    private fun generatePDF(clockTextView: TextView, graph: GraphView, speechLogTable: TableLayout,userName: String? ): String? {
         return try {
             // A4 paper size in points (1 inch = 72 points)
             val pageWidth = 842
@@ -60,14 +62,22 @@ class PDFUtils(private val context: Context) {
             document.open()
 
             // Add heading line to the PDF
-            val heading = Paragraph("Speech Recognition Report")
+            val heading = Paragraph("Fetal Heart Rate Monitoring Report")
             heading.font.size = 16f
             heading.alignment = Element.ALIGN_CENTER
             document.add(heading)
 
+            // Add Name line to the PDF
+            val name = Paragraph("Name: $userName")
+            name.font.size = 12f
+            name.font.color = BaseColor.BLUE
+            name.alignment = Element.ALIGN_CENTER
+            document.add(name)
+
             // Add the timer value
             val timerValue = clockTextView.text.toString()
             val timerParagraph = Paragraph("Total Time: $timerValue")
+            timerParagraph.font.color = BaseColor.BLUE
             timerParagraph.alignment = Element.ALIGN_CENTER
             document.add(timerParagraph)
 
