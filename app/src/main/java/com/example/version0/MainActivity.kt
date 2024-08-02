@@ -1,5 +1,6 @@
 package com.example.version0
 
+import SpeechRecognitionManager
 import android.content.Context
 import android.media.AudioManager
 import android.media.MediaPlayer
@@ -28,9 +29,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
     private lateinit var mediaPlayer: MediaPlayer
 
 
-    private lateinit var yourButton: Button
+    lateinit var yourButton: Button
     private lateinit var shareButton: ImageButton
-    private lateinit var card1: LinearLayout
+    lateinit var card1: LinearLayout
 
     private lateinit var resultTextView: TextView
 
@@ -90,6 +91,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         }
 
         yourButton.setOnClickListener {
+           speechRecognitionManager.retryCount=0
             if (isFirstClick) {
                 userNameDialog.show()
                 isFirstClick = false
