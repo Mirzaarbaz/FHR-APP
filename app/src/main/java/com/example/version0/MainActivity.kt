@@ -37,6 +37,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
     private lateinit var graphInitializer: GraphInitializer
     private var speechCounter: Int = 1
     private var userName: String? = null
+    private var userNumber: Int = 0
     private var isFirstClick = true
 
     @RequiresApi(Build.VERSION_CODES.Q)
@@ -67,15 +68,18 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         speechRecognitionManager.setResultListener(this)
 
         // Initialize UserNameDialog
-        userNameDialog = UserNameDialog(this) { name ->
+        userNameDialog = UserNameDialog(this) { name, number ->
             userName = name
-            startListening()
+            userNumber = number // Assuming you have a variable to store the number
+            clockManager.startClock()
+            checkAndRequestPermissions()
         }
+
 
         // Setup PDF sharing
         val pdfUtils = PDFUtils(this)
         shareButton.setOnClickListener {
-            pdfUtils.sharePDF(clockTextView, graph, speechLogTable, userName)
+            pdfUtils.sharePDF(clockTextView, graph, speechLogTable, userName, userNumber.toString())
         }
 
         yourButton.setOnClickListener {
@@ -163,7 +167,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
             graphInitializer.addDataPoint(currentValue.toDouble())
             resultTextView.text = currentValue.toString()
 
-            val formattedTime = "${clockTextView.text} (${getCurrentTime()})"
+            val formattedTime = "${clockTextView.text} (${convertTime(getCurrentTime())})"
             TableUtils.addDataToTable(
                 this,
                 speechLogTable,

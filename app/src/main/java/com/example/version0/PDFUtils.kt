@@ -2,6 +2,7 @@ package com.example.version0
 
 // PDFUtils.kt
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -26,8 +27,14 @@ import java.io.FileOutputStream
 
 class PDFUtils(private val context: Context) {
 
-    fun sharePDF(clockTextView: TextView, graph: GraphView, speechLogTable: TableLayout, userName: String?) {
-        val pdfFilePath = generatePDF(clockTextView, graph, speechLogTable, userName)
+    fun sharePDF(
+        clockTextView: TextView,
+        graph: GraphView,
+        speechLogTable: TableLayout,
+        userName: String?,
+        dialation: String?
+    ) {
+        val pdfFilePath = generatePDF(clockTextView, graph, speechLogTable, userName, dialation)
         if (pdfFilePath != null) {
             val file = File(pdfFilePath)
             val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
@@ -44,7 +51,13 @@ class PDFUtils(private val context: Context) {
         }
     }
 
-    private fun generatePDF(clockTextView: TextView, graph: GraphView, speechLogTable: TableLayout,userName: String? ): String? {
+    private fun generatePDF(
+        clockTextView: TextView,
+        graph: GraphView,
+        speechLogTable: TableLayout,
+        userName: String?,
+        dialation: String?
+    ): String? {
         return try {
             // A4 paper size in points (1 inch = 72 points)
             val pageWidth = 842
@@ -54,8 +67,10 @@ class PDFUtils(private val context: Context) {
             val margin = 36
 
             // Create a PDF document
-            val document = Document(PageSize.A4.rotate()) // Use rotate() to switch to landscape mode
-            val pdfFilePath = context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)?.absolutePath + "/graph_and_table.pdf"
+            val document =
+                Document(PageSize.A4.rotate()) // Use rotate() to switch to landscape mode
+            val pdfFilePath =
+                context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)?.absolutePath + "/graph_and_table.pdf"
 
             // Create a PdfWriter instance
             val writer = PdfWriter.getInstance(document, FileOutputStream(pdfFilePath))
@@ -73,6 +88,13 @@ class PDFUtils(private val context: Context) {
             name.font.color = BaseColor.BLUE
             name.alignment = Element.ALIGN_CENTER
             document.add(name)
+
+            // Add Dilation line to the PDF
+            val dilation = Paragraph("Dilation: $dialation cm")
+            dilation.font.size = 12f
+            dilation.font.color = BaseColor.BLUE
+            dilation.alignment = Element.ALIGN_CENTER
+            document.add(dilation)
 
             // Add the timer value
             val timerValue = clockTextView.text.toString()
@@ -132,5 +154,37 @@ class PDFUtils(private val context: Context) {
         image.setAbsolutePosition(x, y)
         image.scaleAbsolute(360F, minOf(360F, image.height - 30))
         document.add(image)
+    }
+
+    private fun convertTime(timeString: String?): String {
+        // Check if the input string is null or empty
+        if (timeString.isNullOrEmpty()) {
+            return "Invalid time format"
+        }
+
+        // Split the time string by colons and parse hours, minutes, and seconds
+        val timeParts = timeString.split(":")
+        return if (timeParts.size == 3) {
+            try {
+                val hours24 = timeParts[0].trim().toInt()
+                val minutes = timeParts[1].trim().toInt()
+                // Seconds are not used in the final format
+                // val seconds = timeParts[2].trim().toInt()
+
+                // Convert 24-hour format to 12-hour format
+                val hours12 = if (hours24 % 12 == 0) 12 else hours24 % 12
+                val amPm = if (hours24 < 12) "AM" else "PM"
+
+                // Format the time to "hh:mm am/pm"
+                String.format("%02d:%02d %s", hours12, minutes, amPm)
+
+            } catch (e: NumberFormatException) {
+                // Handle potential number format errors
+                "Invalid time format"
+            }
+        } else {
+            // Handle the case where the time string format is not as expected
+            "Invalid time format"
+        }
     }
 }
