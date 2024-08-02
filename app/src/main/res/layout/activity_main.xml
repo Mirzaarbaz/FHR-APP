@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:layout_height="match_parent">
 
     <LinearLayout
         android:id="@+id/card1"
@@ -51,7 +50,6 @@
                     android:layout_weight="6"
                     android:gravity="right"
                     android:paddingRight="12dp"
-
                     android:text="00 : 00 : 00"
                     android:textColor="#eee"
                     android:textSize="18sp" />
@@ -69,7 +67,6 @@
 
             </LinearLayout>
 
-
             <TextView
                 android:id="@+id/resultTextView"
                 android:layout_width="match_parent"
@@ -85,8 +82,7 @@
                 android:textStyle="bold"
                 app:autoSizeMaxTextSize="88sp"
                 app:autoSizeMinTextSize="12sp"
-                app:autoSizeTextType="uniform" />/>
-
+                app:autoSizeTextType="uniform" />
 
         </LinearLayout>
 
@@ -94,11 +90,13 @@
 
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:layout_below="@id/card1">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:paddingBottom="68dp"
             android:orientation="vertical">
 
             <com.jjoe64.graphview.GraphView
@@ -155,5 +153,22 @@
         </LinearLayout>
     </ScrollView>
 
-
-</LinearLayout>
+    <!-- Floating Action Button -->
+    <Button
+        android:id="@+id/finish"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/rounded_button_background"
+        android:text="  FINISH  "
+        android:textColor="@android:color/white"
+        android:textSize="16sp"
+        android:padding="16dp"
+        android:textAllCaps="false"
+        android:drawableLeft="@drawable/check_24px"
+        android:drawableTint="@android:color/white"
+        android:gravity="center"/>
+</RelativeLayout>

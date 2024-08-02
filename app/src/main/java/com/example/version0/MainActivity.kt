@@ -7,19 +7,19 @@ import android.media.MediaPlayer
 import android.os.Build
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
-import android.speech.tts.UtteranceProgressListener
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TableLayout
+import android.widget.TableRow
 import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.RequiresApi
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.jjoe64.graphview.GraphView
 import java.util.Calendar
 import java.util.Locale
-import java.util.UUID
 
 class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultListener {
 
@@ -28,23 +28,22 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
     private lateinit var userNameDialog: UserNameDialog
     private lateinit var mediaPlayer: MediaPlayer
 
-
+    private lateinit var finishButton: Button
     lateinit var yourButton: Button
     private lateinit var shareButton: ImageButton
     lateinit var card1: LinearLayout
 
     private lateinit var resultTextView: TextView
-
     private lateinit var clockTextView: TextView
     private lateinit var graph: GraphView
     private lateinit var speechLogTable: TableLayout
     private lateinit var clockManager: ClockManager
-
     private lateinit var graphInitializer: GraphInitializer
+
     private var speechCounter: Int = 1
     private var userName: String? = null
     private var userNumber: Int = 0
-    private var isFirstClick = true
+    var isFirstClick = true
 
     @RequiresApi(Build.VERSION_CODES.Q)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -59,18 +58,15 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         shareButton = findViewById(R.id.shareButton)
         card1 = findViewById(R.id.card1)
         resultTextView = findViewById(R.id.resultTextView)
+        finishButton = findViewById(R.id.finish)
 
-        // Initialize GraphView
+        // Initialize components
         graphInitializer = GraphInitializer(this, graph)
-
-        // Initialize ClockManager
         clockManager = ClockManager(clockTextView)
-
-        // Initialize TextToSpeechManager
         textToSpeechManager = TextToSpeechManager(this, this)
 
-        mediaPlayer = MediaPlayer.create(this, R.raw.fhr2) // 'fhr' is the resource name of FHR.mp3
-
+        // Initialize MediaPlayer with a prepared resource
+        initializeMediaPlayer()
 
         // Initialize SpeechRecognitionManager
         speechRecognitionManager = SpeechRecognitionManager(this)
@@ -79,7 +75,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         // Initialize UserNameDialog
         userNameDialog = UserNameDialog(this) { name, number ->
             userName = name
-            userNumber = number // Assuming you have a variable to store the number
+            userNumber = number
             clockManager.startClock()
             checkAndRequestPermissions()
         }
@@ -91,7 +87,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         }
 
         yourButton.setOnClickListener {
-           speechRecognitionManager.retryCount=0
+            speechRecognitionManager.retryCount = 0
             if (isFirstClick) {
                 userNameDialog.show()
                 isFirstClick = false
@@ -101,14 +97,86 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
             }
         }
 
+        finishButton.setOnClickListener {
+            AppUtils.showConfirmationDialog(
+                this,
+                pdfUtils,
+                clockTextView,
+                graph,
+                speechLogTable,
+                userName,
+                userNumber,
+                ::resetApp
+            )
+        }
+    }
+
+    private fun initializeMediaPlayer() {
+        // Release any existing MediaPlayer instance
+        if (::mediaPlayer.isInitialized) {
+            mediaPlayer.release()
+        }
+
+        // Initialize MediaPlayer
+        mediaPlayer = MediaPlayer.create(this, R.raw.fhr)
+        mediaPlayer.setOnPreparedListener {
+            // MediaPlayer is prepared and ready to start
+        }
+        mediaPlayer.setOnCompletionListener {
+            runOnUiThread {
+                ButtonStyleUtils.setListeningStyle(this@MainActivity, yourButton, card1)
+                speechRecognitionManager.startSpeechRecognition()
+            }
+        }
+    }
+
+    private fun startListening() {
+        // Check if MediaPlayer is initialized and ready
+        if (!::mediaPlayer.isInitialized) {
+            initializeMediaPlayer()
+        }
+
+        // Get the AudioManager service
+        val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
+        // Set the volume to maximum
+        val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume - 1, 0)
+
+        // Start MediaPlayer playback
+        try {
+            mediaPlayer.start()
+        } catch (e: IllegalStateException) {
+            // Handle the exception or reinitialize MediaPlayer if needed
+            initializeMediaPlayer()
+            mediaPlayer.start()
+        }
+    }
+
+    private fun resetApp() {
+        isFirstClick= true
+        AppUtils.resetApp(
+            this,
+            clockTextView,
+            graph,
+            speechLogTable,
+            resultTextView,
+            mediaPlayer,
+            textToSpeechManager,
+            clockManager,
+        ) { newGraphInitializer, newClockManager ->
+            graphInitializer = newGraphInitializer
+            clockManager = newClockManager
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
         textToSpeechManager.stop()
         clockManager.stopClock()
-        mediaPlayer.release() // Release MediaPlayer resources
-
+        if (::mediaPlayer.isInitialized) {
+            mediaPlayer.release() // Release MediaPlayer resources
+        }
     }
 
     private fun checkAndRequestPermissions() {
@@ -124,25 +192,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
             PermissionUtils.requestMicrophonePermission(this)
         }
     }
-
-    private fun startListening() {
-        // Get the AudioManager service
-        val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-
-        // Set the volume to maximum
-        val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume-1, 0)
-
-        // Play the audio file
-        mediaPlayer.start()
-        mediaPlayer.setOnCompletionListener {
-            runOnUiThread {
-                ButtonStyleUtils.setListeningStyle(this@MainActivity, yourButton, card1)
-                speechRecognitionManager.startSpeechRecognition()
-            }
-        }
-    }
-
 
     private fun showNotification() {
         NotificationUtils.showNotification(this)
