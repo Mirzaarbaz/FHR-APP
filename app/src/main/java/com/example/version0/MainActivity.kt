@@ -1,5 +1,8 @@
 package com.example.version0
 
+import android.content.Context
+import android.media.AudioManager
+import android.media.MediaPlayer
 import android.os.Build
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
@@ -20,8 +23,10 @@ import java.util.UUID
 class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultListener {
 
     private lateinit var speechRecognitionManager: SpeechRecognitionManager
-    private lateinit var textToSpeech: TextToSpeech
+    private lateinit var textToSpeechManager: TextToSpeechManager
     private lateinit var userNameDialog: UserNameDialog
+    private lateinit var mediaPlayer: MediaPlayer
+
 
     private lateinit var yourButton: Button
     private lateinit var shareButton: ImageButton
@@ -60,8 +65,11 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         // Initialize ClockManager
         clockManager = ClockManager(clockTextView)
 
-        // Initialize TextToSpeech
-        textToSpeech = TextToSpeech(this, this)
+        // Initialize TextToSpeechManager
+        textToSpeechManager = TextToSpeechManager(this, this)
+
+        mediaPlayer = MediaPlayer.create(this, R.raw.fhr2) // 'fhr' is the resource name of FHR.mp3
+
 
         // Initialize SpeechRecognitionManager
         speechRecognitionManager = SpeechRecognitionManager(this)
@@ -74,7 +82,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
             clockManager.startClock()
             checkAndRequestPermissions()
         }
-
 
         // Setup PDF sharing
         val pdfUtils = PDFUtils(this)
@@ -96,9 +103,10 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
 
     override fun onDestroy() {
         super.onDestroy()
-        textToSpeech.stop()
-        textToSpeech.shutdown()
+        textToSpeechManager.stop()
         clockManager.stopClock()
+        mediaPlayer.release() // Release MediaPlayer resources
+
     }
 
     private fun checkAndRequestPermissions() {
@@ -116,24 +124,23 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
     }
 
     private fun startListening() {
-        val utteranceId = UUID.randomUUID().toString()
-        val message = "Say fetal heart rate"
-        textToSpeech.speak(message, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
+        // Get the AudioManager service
+        val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
-        textToSpeech.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-            override fun onStart(utteranceId: String?) {}
+        // Set the volume to maximum
+        val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume-1, 0)
 
-            override fun onDone(utteranceId: String?) {
-                runOnUiThread {
-                    ButtonStyleUtils.setListeningStyle(this@MainActivity, yourButton, card1)
-                    speechRecognitionManager.startSpeechRecognition()
-                }
+        // Play the audio file
+        mediaPlayer.start()
+        mediaPlayer.setOnCompletionListener {
+            runOnUiThread {
+                ButtonStyleUtils.setListeningStyle(this@MainActivity, yourButton, card1)
+                speechRecognitionManager.startSpeechRecognition()
             }
-
-            @Deprecated("Deprecated in Java")
-            override fun onError(utteranceId: String?) {}
-        })
+        }
     }
+
 
     private fun showNotification() {
         NotificationUtils.showNotification(this)
@@ -146,7 +153,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
             val locale = Locale("hin", "IND")
-            val result = textToSpeech.setLanguage(locale)
+            val result = textToSpeechManager.textToSpeech.setLanguage(locale)
             if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
                 Toast.makeText(
                     this,
@@ -154,7 +161,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
                     Toast.LENGTH_SHORT
                 ).show()
             } else {
-                textToSpeech.setSpeechRate(0.8f)
+                textToSpeechManager.textToSpeech.setSpeechRate(0.8f)
             }
         } else {
             Toast.makeText(this, "Text-to-Speech initialization failed", Toast.LENGTH_SHORT).show()
