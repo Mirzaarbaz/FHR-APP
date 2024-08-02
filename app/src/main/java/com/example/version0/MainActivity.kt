@@ -130,6 +130,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         }
     }
 
+
     private fun startListening() {
         // Check if MediaPlayer is initialized and ready
         if (!::mediaPlayer.isInitialized) {
