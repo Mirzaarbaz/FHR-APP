@@ -1,15 +1,20 @@
 package com.example.version0
 
 import SpeechRecognitionManager
+import android.annotation.SuppressLint
 import android.content.Context
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.speech.tts.TextToSpeech
+import android.view.View
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.TableLayout
 import android.widget.TableRow
 import android.widget.TextView
@@ -28,13 +33,18 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
     private lateinit var userNameDialog: UserNameDialog
     private lateinit var mediaPlayer: MediaPlayer
 
+    private lateinit var progressBar: ProgressBar
+    private lateinit var pdfUtils: PDFUtils
     private lateinit var finishButton: Button
     lateinit var yourButton: Button
     private lateinit var shareButton: ImageButton
+    private lateinit var editButton: ImageButton
     lateinit var card1: LinearLayout
 
     private lateinit var resultTextView: TextView
     private lateinit var clockTextView: TextView
+    lateinit var pname: TextView
+    lateinit var dilation: TextView
     private lateinit var graph: GraphView
     private lateinit var speechLogTable: TableLayout
     private lateinit var clockManager: ClockManager
@@ -45,6 +55,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
     private var userNumber: Int = 0
     var isFirstClick = true
 
+    @SuppressLint("MissingInflatedId")
     @RequiresApi(Build.VERSION_CODES.Q)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,13 +63,17 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
 
         // Initialize views
         clockTextView = findViewById(R.id.clockTextView)
+        pname = findViewById(R.id.name)
+        dilation = findViewById(R.id.dia)
         graph = findViewById(R.id.graph)
         speechLogTable = findViewById(R.id.speechLogTable)
         yourButton = findViewById(R.id.yourButton)
+        editButton = findViewById(R.id.edit)
         shareButton = findViewById(R.id.shareButton)
         card1 = findViewById(R.id.card1)
         resultTextView = findViewById(R.id.resultTextView)
         finishButton = findViewById(R.id.finish)
+        progressBar = findViewById(R.id.progressBar)
 
         // Initialize components
         graphInitializer = GraphInitializer(this, graph)
@@ -72,24 +87,33 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         speechRecognitionManager = SpeechRecognitionManager(this)
         speechRecognitionManager.setResultListener(this)
 
-        // Initialize UserNameDialog
-        userNameDialog = UserNameDialog(this) { name, number ->
-            userName = name
-            userNumber = number
-            clockManager.startClock()
-            checkAndRequestPermissions()
+        // Initialize UserNameDialog with a callback to update UI and determine which button was clicked
+        userNameDialog = UserNameDialog(this) { name, number, buttonClicked ->
+            updateUI(name, number)
+            if (buttonClicked == "yourButton") {
+                clockManager.startClock()
+                checkAndRequestPermissions()
+            }
         }
 
-        // Setup PDF sharing
-        val pdfUtils = PDFUtils(this)
+        // Initialize PDFUtils
+        pdfUtils = PDFUtils(this)
+
+        // Setup PDF sharing with a 5-second loader
         shareButton.setOnClickListener {
-            pdfUtils.sharePDF(clockTextView, graph, speechLogTable, userName, userNumber.toString())
+            AppUtils.showLoaderAndSharePDF(this, progressBar, pdfUtils, clockTextView, graph, speechLogTable, userName, userNumber)
         }
 
+        // Handle editButton click to update UI only
+        editButton.setOnClickListener {
+            userNameDialog.show("editButton")
+            isFirstClick = false
+        }
+
+        // Handle yourButton click to update UI and perform other actions
         yourButton.setOnClickListener {
-            speechRecognitionManager.retryCount = 0
-            if (isFirstClick) {
-                userNameDialog.show()
+            if(isFirstClick) {
+                userNameDialog.show("yourButton")
                 isFirstClick = false
             } else {
                 clockManager.startClock()
@@ -97,18 +121,19 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
             }
         }
 
+        // Handle finishButton click to show confirmation dialog
         finishButton.setOnClickListener {
             AppUtils.showConfirmationDialog(
-                this,
-                pdfUtils,
-                clockTextView,
-                graph,
-                speechLogTable,
-                userName,
-                userNumber,
-                ::resetApp
+                this, pdfUtils, clockTextView, graph, speechLogTable, userName, userNumber, ::resetApp
             )
         }
+    }
+
+    private fun updateUI(name: String, number: Int) {
+        pname.text = "Name: $name"
+        dilation.text = "|    Dilation: $number cm"
+        userName = name
+        userNumber = number
     }
 
     private fun initializeMediaPlayer() {
@@ -156,6 +181,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
 
     private fun resetApp() {
         isFirstClick= true
+        speechCounter=1
         AppUtils.resetApp(
             this,
             clockTextView,

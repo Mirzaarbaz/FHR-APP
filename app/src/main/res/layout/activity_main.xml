@@ -87,11 +87,77 @@
         </LinearLayout>
 
     </LinearLayout>
+    <LinearLayout
+        android:id="@+id/card2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="12dp"
+        android:layout_marginRight="12dp"
+        android:layout_below="@+id/card1"
+        android:background="@drawable/card_grey"
+        android:padding="4dp"
+        android:backgroundTint="#eee"
+        android:orientation="horizontal">
 
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="8dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="left"
+                    android:padding="6dp"
+                    android:text="Name:                          "
+                    android:textStyle="bold"
+                    android:textColor="#666"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/dia"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="left"
+                    android:padding="6dp"
+                    android:textStyle="bold"
+                    android:text="|     Dialation:  "
+                    android:textColor="#666"
+                    android:textSize="14sp" />
+
+
+            </LinearLayout>
+
+            <ImageButton
+                android:id="@+id/edit"
+                android:layout_alignParentEnd="true"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_gravity="right"
+                android:background="@drawable/card_grey"
+                android:layout_margin="8dp"
+                android:padding="8dp"
+                android:backgroundTint="@color/blue"
+                android:onClick="editData"
+                android:scaleType="centerCrop"
+                android:src="@drawable/edit_24px"
+                app:tint="@color/white"/>
+
+        </RelativeLayout>
+
+
+
+
+    </LinearLayout>
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@id/card1">
+        android:layout_below="@id/card2">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -171,4 +237,14 @@
         android:drawableLeft="@drawable/check_24px"
         android:drawableTint="@android:color/white"
         android:gravity="center"/>
+
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:indeterminate="true"
+        android:indeterminateTintMode="src_atop"
+        android:indeterminateTint="@color/blue"
+        android:visibility="gone"/>
 </RelativeLayout>

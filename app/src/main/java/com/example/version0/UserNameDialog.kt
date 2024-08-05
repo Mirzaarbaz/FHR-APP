@@ -8,9 +8,12 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 
-class UserNameDialog(private val context: Context, private val onNameEntered: (String, Int) -> Unit) {
+class UserNameDialog(
+    private val context: Context,
+    private val onNameEntered: (String, Int, String) -> Unit // Added String parameter for button identifier
+) {
 
-    fun show() {
+    fun show(triggeringButton: String) { // Added parameter to identify which button clicked
         val builder = AlertDialog.Builder(context)
         builder.setTitle("Enter Details")
 
@@ -31,18 +34,15 @@ class UserNameDialog(private val context: Context, private val onNameEntered: (S
         horizontalLayout.orientation = LinearLayout.HORIZONTAL
         horizontalLayout.setPadding(16, 36, 16, 16) // Padding for better spacing
 
-        // Create and configure + Button
+        // Create and configure - Button
         val di = TextView(context)
         di.text = "Dilation:  "
         di.textSize = 16f
         horizontalLayout.addView(di)
 
-        // Create and configure - Button
         val minusButton = Button(context)
         minusButton.text = "-"
         horizontalLayout.addView(minusButton)
-
-
 
         // Create and configure TextView to display the value
         val valueTextView = TextView(context)
@@ -52,7 +52,6 @@ class UserNameDialog(private val context: Context, private val onNameEntered: (S
         valueTextView.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
         horizontalLayout.addView(valueTextView)
 
-        // Create and configure + Button
         val cm = TextView(context)
         cm.text = "cm  "
         horizontalLayout.addView(cm)
@@ -91,12 +90,10 @@ class UserNameDialog(private val context: Context, private val onNameEntered: (S
                 Toast.makeText(context, "Name cannot be blank", Toast.LENGTH_SHORT).show()
             } else {
                 val numberValue = valueTextView.text.toString().toInt()
-                onNameEntered(userName, numberValue)
+                onNameEntered(userName, numberValue, triggeringButton) // Pass the button identifier
                 dialog.dismiss()
             }
         }
-
-
 
         builder.setCancelable(false)
         builder.show()

@@ -15,22 +15,12 @@
           <targets>
             <Target type="DEFAULT_BOOT">
               <handle>
-                <DeviceId pluginId="PhysicalDevice" identifier="serial=RZ8R40DYV1P" />
+                <DeviceId pluginId="PhysicalDevice" identifier="serial=RZ8R40DX28N" />
               </handle>
             </Target>
             <Target type="DEFAULT_BOOT">
               <handle>
-                <DeviceId pluginId="PhysicalDevice" identifier="serial=RZ8R40BPRYN" />
-              </handle>
-            </Target>
-            <Target type="DEFAULT_BOOT">
-              <handle>
-                <DeviceId pluginId="PhysicalDevice" identifier="serial=P12294002678" />
-              </handle>
-            </Target>
-            <Target type="DEFAULT_BOOT">
-              <handle>
-                <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\SatyaSwarupSrichanda\.android\avd\Pixel_6_API_28.avd" />
+                <DeviceId pluginId="PhysicalDevice" identifier="serial=RZ8R40D4GVY" />
               </handle>
             </Target>
           </targets>

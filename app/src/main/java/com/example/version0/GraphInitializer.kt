@@ -32,11 +32,12 @@ class GraphInitializer(private val context: Context, private val graph: GraphVie
         // Add two horizontal lines
         val lineAt120 =
             LineGraphSeries(arrayOf(DataPoint(0.0, 120.0), DataPoint(8.0, 120.0)))
-        lineAt120.color = Color.MAGENTA
+        lineAt120.color = ContextCompat.getColor(context, R.color.blue)
 
         val lineAt160 =
             LineGraphSeries(arrayOf(DataPoint(0.0, 160.0), DataPoint(8.0, 160.0)))
-        lineAt160.color = Color.MAGENTA
+//        lineAt160.color = Color.MAGENTA
+        lineAt160.color = ContextCompat.getColor(context, R.color.blue)
 
         // Add the series to the graph
         graph.addSeries(series)

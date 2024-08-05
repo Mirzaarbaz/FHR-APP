@@ -2,7 +2,11 @@ package com.example.version0
 
 import android.content.Context
 import android.media.MediaPlayer
+import android.os.Handler
+import android.os.Looper
 import android.speech.tts.TextToSpeech
+import android.view.View
+import android.widget.ProgressBar
 import android.widget.TableLayout
 import android.widget.TableRow
 import android.widget.TextView
@@ -46,6 +50,29 @@ class AppUtils {
             graph.removeAllSeries()
         }
 
+        fun showLoaderAndSharePDF(
+            context: Context,
+            progressBar: ProgressBar,
+            pdfUtils: PDFUtils,
+            clockTextView: TextView,
+            graph: GraphView,
+            speechLogTable: TableLayout,
+            userName: String?,
+            userNumber: Int
+        ) {
+            // Show the ProgressBar
+            progressBar.visibility = View.VISIBLE
+
+            // Perform the sharing operation after a delay
+            Handler(Looper.getMainLooper()).postDelayed({
+                // Share the PDF
+                pdfUtils.sharePDF(clockTextView, graph, speechLogTable, userName, userNumber.toString())
+
+                // Hide the ProgressBar after sharing
+                progressBar.visibility = View.GONE
+            }, 4000)
+        }
+
         fun resetApp(
             context: Context,
             clockTextView: TextView,
@@ -74,7 +101,7 @@ class AppUtils {
             // Reinitialize components
             val (newGraphInitializer, newClockManager) = initializeComponents(context, graph, clockTextView)
 
-            // Set the new instances
+            // Set the nlew instances
             updateComponents(newGraphInitializer, newClockManager)
         }
 
@@ -103,13 +130,14 @@ class AppUtils {
                 null
             }
 
-            // Remove all rows from the table
-            speechLogTable.removeAllViews()
-
-            // Re-add the header row if it exists
-            headerRow?.let {
-                speechLogTable.addView(it)
+            // Remove all rows except the header
+            if (headerRow != null) {
+                // Start removing from the second row (index 1)
+                for (i in speechLogTable.childCount - 1 downTo 1) {
+                    speechLogTable.removeViewAt(i)
+                }
             }
         }
+
     }
 }
