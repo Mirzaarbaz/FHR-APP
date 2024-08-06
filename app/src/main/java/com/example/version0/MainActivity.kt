@@ -186,6 +186,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
             this,
             clockTextView,
             graph,
+            pname,
+            dilation,
             speechLogTable,
             resultTextView,
             mediaPlayer,

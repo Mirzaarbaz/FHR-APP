@@ -77,6 +77,8 @@ class AppUtils {
             context: Context,
             clockTextView: TextView,
             graph: GraphView,
+            name: TextView,
+            dilation: TextView,
             speechLogTable: TableLayout,
             resultTextView: TextView,
             mediaPlayer: MediaPlayer,
@@ -93,6 +95,8 @@ class AppUtils {
             clearGraph(graph)
 
             // Clear UI elements
+            name.text="Name:                          "
+            dilation.text="|     Dialation:  "
             resultTextView.text = "000"
             clockTextView.text = "00:00:00"
             // Preserve and clear speechLogTable while keeping the header row
