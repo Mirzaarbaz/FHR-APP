@@ -25,17 +25,17 @@ class AppUtils {
             speechLogTable: TableLayout,
             userName: String?,
             userNumber: Int,
-            resetApp: () -> Unit
+            onConfirm: () -> Unit // Callback with no parameters
         ) {
             val builder = AlertDialog.Builder(context)
             builder.setTitle("Confirmation")
                 .setMessage("Are you sure you want to finish? This will reset the application.")
-                .setPositiveButton("Yes & Print") { dialog, _ ->
+                .setPositiveButton("Yes (Save & Print)") { dialog, _ ->
                     // Share the PDF
                     pdfUtils.sharePDF(clockTextView, graph, speechLogTable, userName, userNumber.toString())
 
-                    // Clear everything and reset the app
-                    resetApp()
+                    // Handle confirmation action
+                    onConfirm() // Call the confirmation callback
                     dialog.dismiss() // Close the dialog
                 }
                 .setNegativeButton("No") { dialog, _ ->
@@ -44,6 +44,8 @@ class AppUtils {
                 .create()
                 .show()
         }
+
+
 
         fun clearGraph(graph: GraphView) {
             // Clear all data points from the graph

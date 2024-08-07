@@ -7,6 +7,8 @@ import android.widget.TableLayout
 import android.widget.TableRow
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import org.json.JSONArray
+import org.json.JSONObject
 
 object TableUtils {
 
@@ -17,6 +19,22 @@ object TableUtils {
             this.setTextColor(Color.BLACK)
             this.setPadding(16, 16, 16, 16)
         }
+    }
+
+    fun getTableDataAsJson(tableLayout: TableLayout): String {
+        val jsonArray = JSONArray()
+
+        for (i in 0 until tableLayout.childCount) {
+            val tableRow = tableLayout.getChildAt(i) as? TableRow ?: continue
+            val jsonObject = JSONObject()
+            for (j in 0 until tableRow.childCount) {
+                val textView = tableRow.getChildAt(j) as? TextView ?: continue
+                jsonObject.put("column_$j", textView.text.toString())
+            }
+            jsonArray.put(jsonObject)
+        }
+
+        return jsonArray.toString()
     }
 
     fun addDataToTable(

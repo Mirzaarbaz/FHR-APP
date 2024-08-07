@@ -25,6 +25,12 @@ import androidx.appcompat.app.AppCompatActivity
 import com.jjoe64.graphview.GraphView
 import java.util.Calendar
 import java.util.Locale
+import com.example.version0.ApiHelper
+import com.example.version0.TextViewData
+import okhttp3.OkHttpClient
+import java.text.SimpleDateFormat
+import java.util.TimeZone
+
 
 class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultListener {
 
@@ -32,6 +38,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
     private lateinit var textToSpeechManager: TextToSpeechManager
     private lateinit var userNameDialog: UserNameDialog
     private lateinit var mediaPlayer: MediaPlayer
+    private lateinit var apiHelper: ApiHelper
 
     private lateinit var progressBar: ProgressBar
     private lateinit var pdfUtils: PDFUtils
@@ -74,6 +81,10 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         resultTextView = findViewById(R.id.resultTextView)
         finishButton = findViewById(R.id.finish)
         progressBar = findViewById(R.id.progressBar)
+
+        // Initialize ApiHelper
+        val client = OkHttpClient()
+        apiHelper = ApiHelper(client)
 
         // Initialize components
         graphInitializer = GraphInitializer(this, graph)
@@ -122,12 +133,66 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         }
 
         // Handle finishButton click to show confirmation dialog
+//        finishButton.setOnClickListener {
+//            AppUtils.showConfirmationDialog(
+//                this, pdfUtils, clockTextView, graph, speechLogTable, userName, userNumber, ::resetApp
+//            )
+//        }
+        // Handle finishButton click to show confirmation dialog
+//        finishButton.setOnClickListener {
+//            val (textViewData, tableData) = DataPreparationUtils.prepareDataForUpload(
+//                pname.text.toString(),
+//                dilation.text.toString(),
+//                clockTextView.text.toString(),
+//                speechLogTable
+//            )
+//            apiHelper.saveData(textViewData, tableData) { success: Boolean ->
+//                runOnUiThread {
+//                    if (success) {
+//                        Toast.makeText(this, "Data saved successfully", Toast.LENGTH_SHORT).show()
+//                        resetApp()
+//                    } else {
+//                        Toast.makeText(this, "Failed to save data", Toast.LENGTH_SHORT).show()
+//                    }
+//                }
+//            }
+//        }
+
         finishButton.setOnClickListener {
+            // Show the confirmation dialog
             AppUtils.showConfirmationDialog(
-                this, pdfUtils, clockTextView, graph, speechLogTable, userName, userNumber, ::resetApp
-            )
+                this, pdfUtils, clockTextView, graph, speechLogTable, userName, userNumber
+            ) {
+                // This is the callback of type () -> Unit
+                // Prepare data for upload
+                val (textViewData, tableData) = DataPreparationUtils.prepareDataForUpload(
+                    pname.text.toString(),
+                    dilation.text.toString(),
+                    clockTextView.text.toString(),
+                    speechLogTable
+                )
+
+                // Save data to the server
+                apiHelper.saveData(textViewData, tableData) { success: Boolean ->
+                    runOnUiThread {
+                        if (success) {
+                            Toast.makeText(this, "Data saved successfully", Toast.LENGTH_SHORT).show()
+                            resetApp()
+                        } else {
+                            Toast.makeText(this, "Failed to save data", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
         }
+
+
+
+
+
     }
+
+
 
     private fun updateUI(name: String, number: Int) {
         pname.text = "Name: $name"
@@ -163,7 +228,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         }
 
         // Get the AudioManager service
-        val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
 
         // Set the volume to maximum
         val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)

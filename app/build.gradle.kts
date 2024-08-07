@@ -75,4 +75,9 @@ dependencies {
 
     implementation (libs.graphview)
     implementation (libs.itextg)
+
+    implementation (libs.okhttp)
+    implementation (libs.json)
+
+    implementation (libs.gson)
 }
