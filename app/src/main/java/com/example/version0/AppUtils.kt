@@ -5,7 +5,9 @@ import android.media.MediaPlayer
 import android.os.Handler
 import android.os.Looper
 import android.speech.tts.TextToSpeech
+import android.view.LayoutInflater
 import android.view.View
+import android.view.WindowManager
 import android.widget.ProgressBar
 import android.widget.TableLayout
 import android.widget.TableRow
@@ -45,8 +47,6 @@ class AppUtils {
                 .show()
         }
 
-
-
         fun clearGraph(graph: GraphView) {
             // Clear all data points from the graph
             graph.removeAllSeries()
@@ -54,7 +54,6 @@ class AppUtils {
 
         fun showLoaderAndSharePDF(
             context: Context,
-            progressBar: ProgressBar,
             pdfUtils: PDFUtils,
             clockTextView: TextView,
             graph: GraphView,
@@ -62,18 +61,42 @@ class AppUtils {
             userName: String?,
             userNumber: Int
         ) {
-            // Show the ProgressBar
-            progressBar.visibility = View.VISIBLE
+            // Inflate the custom dialog layout
+            val inflater = LayoutInflater.from(context)
+            val dialogView: View = inflater.inflate(R.layout.dialog_loading, null)
+
+            // Create and show the custom loading dialog
+            val loadingDialog = AlertDialog.Builder(context)
+                .setView(dialogView)
+                .setCancelable(false)
+                .create()
+
+            loadingDialog.show()
+
+            // Set the dialog width and height to wrap content or a specific size
+            val window = loadingDialog.window
+            if (window != null) {
+                val layoutParams = window.attributes
+                layoutParams.width = dpToPx(context, 150) // Set width to 300dp
+                layoutParams.height = WindowManager.LayoutParams.WRAP_CONTENT // Set height to wrap content
+                window.attributes = layoutParams
+            }
 
             // Perform the sharing operation after a delay
             Handler(Looper.getMainLooper()).postDelayed({
                 // Share the PDF
                 pdfUtils.sharePDF(clockTextView, graph, speechLogTable, userName, userNumber.toString())
 
-                // Hide the ProgressBar after sharing
-                progressBar.visibility = View.GONE
+                // Hide the custom loading dialog after sharing
+                loadingDialog.dismiss()
             }, 4000)
         }
+        // Function to convert dp to pixels
+        fun dpToPx(context: Context, dp: Int): Int {
+            val displayMetrics = context.resources.displayMetrics
+            return (dp * displayMetrics.density).toInt()
+        }
+
 
         fun resetApp(
             context: Context,
@@ -107,7 +130,7 @@ class AppUtils {
             // Reinitialize components
             val (newGraphInitializer, newClockManager) = initializeComponents(context, graph, clockTextView)
 
-            // Set the nlew instances
+            // Set the new instances
             updateComponents(newGraphInitializer, newClockManager)
         }
 
@@ -144,6 +167,5 @@ class AppUtils {
                 }
             }
         }
-
     }
 }

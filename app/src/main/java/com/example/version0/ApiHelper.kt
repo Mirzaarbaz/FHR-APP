@@ -14,37 +14,34 @@ class ApiHelper(private val client: OkHttpClient) {
 
     private val mediaTypeJson = "application/json".toMediaType()
 
-    fun saveData(textViewData: Map<String, Any>, tableData: String, callback: (Boolean) -> Unit) {
+    fun saveOrUpdateData(patientId: Int?, textViewData: Map<String, Any>, tableData: String, callback: (Boolean, Int?) -> Unit) {
         val jsonBody = JSONObject().apply {
             put("textViews", JSONObject(textViewData))
             put("tableData", tableData)
+            patientId?.let { put("patientId", it) }
         }
 
         val requestBody = jsonBody.toString().toRequestBody(mediaTypeJson)
 
         val request = Request.Builder()
-            .url("http://3.7.253.3:3000/save-data")
+            .url("http://3.7.253.3:3000/save-or-update-data")
             .post(requestBody)
             .build()
-
-        Log.d("ApiHelper", "Request URL: ${request.url}")
-        Log.d("ApiHelper", "Request Body: ${jsonBody.toString()}")
 
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 e.printStackTrace()
-                Log.e("ApiHelper", "Request failed", e)
-                callback(false)
+                callback(false, null)
             }
 
             override fun onResponse(call: Call, response: Response) {
-                Log.d("ApiHelper", "Response Code: ${response.code}")
-                Log.d("ApiHelper", "Response Body: ${response.body?.string()}")
-
                 if (response.isSuccessful) {
-                    callback(true)
+                    val responseBody = response.body?.string()
+                    val responseJson = JSONObject(responseBody ?: "")
+                    val id = responseJson.optInt("insertId", -1)
+                    callback(true, if (id != -1) id else null)
                 } else {
-                    callback(false)
+                    callback(false, null)
                 }
             }
         })

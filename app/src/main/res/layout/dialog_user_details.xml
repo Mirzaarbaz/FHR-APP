@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/textViewDilationLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Enter Details"
+        android:layout_gravity="center"
+        android:layout_margin="16dp"
+        android:textStyle="bold"
+        android:textSize="20dp"/>
+
+    <!-- EditText for user input -->
+    <EditText
+        android:id="@+id/editTextUserName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Enter Name"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/card_border"
+        android:padding="14dp"/>
+
+    <!-- Horizontal layout for buttons and text view -->
+    <LinearLayout
+        android:id="@+id/layoutDilationControls"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingTop="18dp"
+        android:paddingLeft="12dp">
+
+        <!-- Label for Dilation -->
+        <TextView
+            android:id="@+id/textViewDilationLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Dilation:"
+            android:paddingEnd="16dp"
+            android:textStyle="bold"
+            android:textSize="16dp"/>
+
+        <!-- Minus button -->
+        <Button
+            android:id="@+id/buttonMinus"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
+            android:text="-"
+            android:textSize="18dp"
+            android:textStyle="bold"
+            android:background="@drawable/card_border"
+            android:textColor="@color/blue"/>
+
+        <!-- Value text view -->
+        <TextView
+            android:id="@+id/textViewDilationValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="4"
+            android:textSize="16dp"
+            android:textStyle="bold"
+            android:textColor="@color/blue"
+            android:paddingStart="16dp"
+            android:paddingEnd="6dp"/>
+
+        <!-- cm label -->
+        <TextView
+            android:id="@+id/textViewCmLabel"
+            android:layout_width="wrap_content"
+            android:textStyle="bold"
+            android:paddingEnd="16dp"
+            android:textColor="@color/blue"
+            android:layout_height="wrap_content"
+            android:text="cm"/>
+
+        <!-- Plus button -->
+        <Button
+            android:id="@+id/buttonPlus"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
+            android:text="+"
+            android:textSize="18dp"
+            android:textStyle="bold"
+            android:background="@drawable/card_border"
+            android:textColor="@color/blue"/> <!-- Apply text color -->
+
+    </LinearLayout>
+</LinearLayout>

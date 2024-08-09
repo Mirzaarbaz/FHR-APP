@@ -62,6 +62,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
     private var userNumber: Int = 0
     var isFirstClick = true
 
+    private var patientId: Int? = null
+
+
     @SuppressLint("MissingInflatedId")
     @RequiresApi(Build.VERSION_CODES.Q)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -99,20 +102,43 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         speechRecognitionManager.setResultListener(this)
 
         // Initialize UserNameDialog with a callback to update UI and determine which button was clicked
-        userNameDialog = UserNameDialog(this) { name, number, buttonClicked ->
+        userNameDialog = UserNameDialog(this, { name, number, buttonClicked ->
             updateUI(name, number)
             if (buttonClicked == "yourButton") {
                 clockManager.startClock()
                 checkAndRequestPermissions()
             }
-        }
+        }, {
+            // Prepare data for upload
+            val (textViewData, tableData) = DataPreparationUtils.prepareDataForUpload(
+                pname.text.toString(),
+                dilation.text.toString(),
+                clockTextView.text.toString(),
+                speechLogTable
+            )
+
+            // Save data to the server
+            apiHelper.saveOrUpdateData(patientId, textViewData, tableData) { success, id ->
+                runOnUiThread {
+                    if (success) {
+                        if (patientId == null) {
+                            patientId = id
+                        }
+                        Toast.makeText(this, "Data saved successfully", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(this, "Failed to save data", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        })
 
         // Initialize PDFUtils
         pdfUtils = PDFUtils(this)
 
         // Setup PDF sharing with a 5-second loader
         shareButton.setOnClickListener {
-            AppUtils.showLoaderAndSharePDF(this, progressBar, pdfUtils, clockTextView, graph, speechLogTable, userName, userNumber)
+            AppUtils.showLoaderAndSharePDF(this,  pdfUtils, clockTextView,
+                graph, speechLogTable, userName, userNumber)
         }
 
         // Handle editButton click to update UI only
@@ -132,32 +158,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
             }
         }
 
-        // Handle finishButton click to show confirmation dialog
-//        finishButton.setOnClickListener {
-//            AppUtils.showConfirmationDialog(
-//                this, pdfUtils, clockTextView, graph, speechLogTable, userName, userNumber, ::resetApp
-//            )
-//        }
-        // Handle finishButton click to show confirmation dialog
-//        finishButton.setOnClickListener {
-//            val (textViewData, tableData) = DataPreparationUtils.prepareDataForUpload(
-//                pname.text.toString(),
-//                dilation.text.toString(),
-//                clockTextView.text.toString(),
-//                speechLogTable
-//            )
-//            apiHelper.saveData(textViewData, tableData) { success: Boolean ->
-//                runOnUiThread {
-//                    if (success) {
-//                        Toast.makeText(this, "Data saved successfully", Toast.LENGTH_SHORT).show()
-//                        resetApp()
-//                    } else {
-//                        Toast.makeText(this, "Failed to save data", Toast.LENGTH_SHORT).show()
-//                    }
-//                }
-//            }
-//        }
-
         finishButton.setOnClickListener {
             // Show the confirmation dialog
             AppUtils.showConfirmationDialog(
@@ -173,7 +173,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
                 )
 
                 // Save data to the server
-                apiHelper.saveData(textViewData, tableData) { success: Boolean ->
+                apiHelper.saveOrUpdateData(patientId, textViewData, tableData) { success, id ->
                     runOnUiThread {
                         if (success) {
                             Toast.makeText(this, "Data saved successfully", Toast.LENGTH_SHORT).show()
@@ -187,9 +187,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         }
 
 
-
-
-
     }
 
 
@@ -199,7 +196,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         dilation.text = "|    Dilation: $number cm"
         userName = name
         userNumber = number
+        patientId = null // Reset patientId for a new patient
     }
+
 
     private fun initializeMediaPlayer() {
         // Release any existing MediaPlayer instance
@@ -331,10 +330,33 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
 
             ButtonStyleUtils.setStartStyle(this, yourButton, card1)
             listeningDone()
+
+            // Prepare data for upload
+            val (textViewData, tableData) = DataPreparationUtils.prepareDataForUpload(
+                pname.text.toString(),
+                dilation.text.toString(),
+                clockTextView.text.toString(),
+                speechLogTable
+            )
+
+            // Save data to the server
+            apiHelper.saveOrUpdateData(patientId, textViewData, tableData) { success, id ->
+                runOnUiThread {
+                    if (success) {
+                        if (patientId == null) {
+                            patientId = id
+                        }
+                        Toast.makeText(this, "Data saved successfully", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(this, "Failed to save data", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
         } else {
             onError("No number recognized")
         }
     }
+
 
     override fun onError(errorMessage: String) {
         resultTextView.text = errorMessage

@@ -128,7 +128,7 @@ class PDFUtils(private val context: Context) {
     private fun captureGraphBitmap(graphView: GraphView): Bitmap {
         val bitmap = Bitmap.createBitmap(
             graphView.width,
-            graphView.height,
+            maxOf(graphView.height,600),
             Bitmap.Config.ARGB_8888
         )
         val canvas = Canvas(bitmap)
@@ -139,7 +139,7 @@ class PDFUtils(private val context: Context) {
     private fun captureTableBitmap(table: TableLayout): Bitmap {
         val bitmap = Bitmap.createBitmap(
             table.width,
-            table.height,
+            maxOf(table.height,600),
             Bitmap.Config.ARGB_8888
         )
         val canvas = Canvas(bitmap)

@@ -16,8 +16,11 @@ object DataPreparationUtils {
         clockText: String,
         speechLogTable: TableLayout
     ): Pair<Map<String, Any>, String> {
+
+        val nameWithoutPrefix = pname.removePrefix("Name: ").trim()
+
         val textViewData: Map<String, Any> = mapOf(
-            "name" to pname,
+            "name" to nameWithoutPrefix,
             "age" to 0,  // default age for now
             "date_time" to getCurrentTimeInIST(),
             "dilation" to extractDilationNumber(dilation),
