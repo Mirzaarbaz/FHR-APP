@@ -48,7 +48,7 @@ class SpeechRecognitionManager(private val context: Context) : RecognitionListen
             handler.postDelayed({
                 // Update UI to reflect the listening state
                 if (context is MainActivity) {
-                    ButtonStyleUtils.setListeningStyle(context, (context as MainActivity).yourButton, (context as MainActivity).card1)
+                    ButtonStyleUtils.setListeningStyle(context, context.yourButton, context.card1)
                 }
                 startSpeechRecognition()
             }, 2000) // 2 seconds delay

@@ -4,7 +4,6 @@ import android.content.Context
 import android.media.MediaPlayer
 import android.os.Handler
 import android.os.Looper
-import android.speech.tts.TextToSpeech
 import android.view.LayoutInflater
 import android.view.View
 import android.view.WindowManager
@@ -107,12 +106,10 @@ class AppUtils {
             speechLogTable: TableLayout,
             resultTextView: TextView,
             mediaPlayer: MediaPlayer,
-            textToSpeechManager: TextToSpeechManager,
             clockManager: ClockManager,
             updateComponents: (GraphInitializer, ClockManager) -> Unit
         ) {
             // Stop any ongoing processes
-            textToSpeechManager.stop()
             clockManager.stopClock()
             mediaPlayer.release()
 
@@ -145,7 +142,7 @@ class AppUtils {
             // Reinitialize or reset other components
             val newGraphInitializer = GraphInitializer(context, graph)
             val newClockManager = ClockManager(clockTextView)
-            val newTextToSpeechManager = TextToSpeechManager(context, context as TextToSpeech.OnInitListener)
+
 
             // Return the new instances
             return Pair(newGraphInitializer, newClockManager)

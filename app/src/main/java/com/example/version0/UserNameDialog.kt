@@ -19,7 +19,8 @@ class UserNameDialog(
     private val saveCallback: () -> Unit
 ) {
 
-    fun show(triggeringButton: String) {
+    // Show method with optional parameters for pre-populating fields
+    fun show(triggeringButton: String, existingName: String? = null, existingDilation: Int? = null) {
         // Inflate the custom layout
         val inflater = LayoutInflater.from(context)
         val dialogView: View = inflater.inflate(R.layout.dialog_user_details, null)
@@ -29,6 +30,10 @@ class UserNameDialog(
         val minusButton: Button = dialogView.findViewById(R.id.buttonMinus)
         val plusButton: Button = dialogView.findViewById(R.id.buttonPlus)
         val valueTextView: TextView = dialogView.findViewById(R.id.textViewDilationValue)
+
+        // Set existing values if provided
+        input.setText(existingName ?: "")
+        valueTextView.text = (existingDilation ?: 1).toString()
 
         // Create the AlertDialog builder
         val builder = AlertDialog.Builder(context)

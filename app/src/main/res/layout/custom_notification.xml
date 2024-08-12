@@ -2,6 +2,7 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:padding="16dp"
     android:background="@color/maroon"> <!-- Pink background -->
 
@@ -10,7 +11,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:src="@drawable/baseline_graphic_eq_black_48"
-        android:tint="@color/white"
+        app:tint="@color/white"
         android:layout_alignParentStart="true"
         android:layout_alignParentLeft="true"/>
 
@@ -22,8 +23,8 @@
         android:textColor="#FFFFFF"
         android:layout_toEndOf="@id/icon"
         android:layout_marginLeft="16dp"
-    android:textStyle="bold"
-    android:textSize="18sp" />
+        android:textStyle="bold"
+        android:textSize="18sp" />
 
     <TextView
         android:id="@+id/notification_text"

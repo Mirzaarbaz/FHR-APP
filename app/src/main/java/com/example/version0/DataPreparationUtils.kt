@@ -33,7 +33,7 @@ object DataPreparationUtils {
         return Pair(textViewData, tableData)
     }
 
-    private fun extractDilationNumber(dilationText: String): Int {
+    fun extractDilationNumber(dilationText: String): Int {
         val regex = Regex("\\d+")
         val matchResult = regex.find(dilationText)
         return matchResult?.value?.toInt() ?: 0

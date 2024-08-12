@@ -2,40 +2,31 @@ package com.example.version0
 
 import SpeechRecognitionManager
 import android.annotation.SuppressLint
-import android.content.Context
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.speech.tts.TextToSpeech
-import android.view.View
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TableLayout
-import android.widget.TableRow
 import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.RequiresApi
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.jjoe64.graphview.GraphView
-import java.util.Calendar
-import java.util.Locale
-import com.example.version0.ApiHelper
-import com.example.version0.TextViewData
 import okhttp3.OkHttpClient
 import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 import java.util.TimeZone
 
 
-class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultListener {
+class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultListener, NetworkUtils.NetworkActionListener {
 
     private lateinit var speechRecognitionManager: SpeechRecognitionManager
-    private lateinit var textToSpeechManager: TextToSpeechManager
     private lateinit var userNameDialog: UserNameDialog
     private lateinit var mediaPlayer: MediaPlayer
     private lateinit var apiHelper: ApiHelper
@@ -92,10 +83,12 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         // Initialize components
         graphInitializer = GraphInitializer(this, graph)
         clockManager = ClockManager(clockTextView)
-        textToSpeechManager = TextToSpeechManager(this, this)
 
         // Initialize MediaPlayer with a prepared resource
         initializeMediaPlayer()
+
+        // Set the NetworkActionListener to this Activity
+        NetworkUtils.setNetworkActionListener(this)
 
         // Initialize SpeechRecognitionManager
         speechRecognitionManager = SpeechRecognitionManager(this)
@@ -137,25 +130,25 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
 
         // Setup PDF sharing with a 5-second loader
         shareButton.setOnClickListener {
-            AppUtils.showLoaderAndSharePDF(this,  pdfUtils, clockTextView,
-                graph, speechLogTable, userName, userNumber)
+            AppUtils.showLoaderAndSharePDF(
+                this, pdfUtils, clockTextView,
+                graph, speechLogTable, userName, userNumber
+            )
         }
 
-        // Handle editButton click to update UI only
-        editButton.setOnClickListener {
-            userNameDialog.show("editButton")
-            isFirstClick = false
-        }
-
-        // Handle yourButton click to update UI and perform other actions
         yourButton.setOnClickListener {
-            if(isFirstClick) {
-                userNameDialog.show("yourButton")
+            if (isFirstClick) {
+                showUserNameDialog("yourButton")
                 isFirstClick = false
             } else {
                 clockManager.startClock()
                 checkAndRequestPermissions()
             }
+        }
+
+        editButton.setOnClickListener {
+            showUserNameDialog("editButton")
+            isFirstClick = false
         }
 
         finishButton.setOnClickListener {
@@ -176,7 +169,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
                 apiHelper.saveOrUpdateData(patientId, textViewData, tableData) { success, id ->
                     runOnUiThread {
                         if (success) {
-                            Toast.makeText(this, "Data saved successfully", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this, "Data saved successfully", Toast.LENGTH_SHORT)
+                                .show()
                             resetApp()
                         } else {
                             Toast.makeText(this, "Failed to save data", Toast.LENGTH_SHORT).show()
@@ -189,7 +183,20 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
 
     }
 
+    override fun onNetworkActionCancelled() {
+        // Handle network action cancellation (e.g., restart listening)
+        startListening()
+    }
 
+    private fun showUserNameDialog(triggeringButton: String) {
+        val nameWithoutPrefix = pname.text.toString().removePrefix("Name: ").trim()
+        val dilationValue = DataPreparationUtils.extractDilationNumber(dilation.text.toString())
+        userNameDialog.show(
+            triggeringButton,
+            existingName = nameWithoutPrefix.takeIf { it.isNotBlank() },
+            existingDilation = dilationValue.toString().toIntOrNull()
+        )
+    }
 
     private fun updateUI(name: String, number: Int) {
         pname.text = "Name: $name"
@@ -244,8 +251,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
     }
 
     private fun resetApp() {
-        isFirstClick= true
-        speechCounter=1
+        isFirstClick = true
+        speechCounter = 1
         AppUtils.resetApp(
             this,
             clockTextView,
@@ -255,7 +262,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
             speechLogTable,
             resultTextView,
             mediaPlayer,
-            textToSpeechManager,
             clockManager,
         ) { newGraphInitializer, newClockManager ->
             graphInitializer = newGraphInitializer
@@ -265,7 +271,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
 
     override fun onDestroy() {
         super.onDestroy()
-        textToSpeechManager.stop()
         clockManager.stopClock()
         if (::mediaPlayer.isInitialized) {
             mediaPlayer.release() // Release MediaPlayer resources
@@ -273,17 +278,27 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
     }
 
     private fun checkAndRequestPermissions() {
+        // Check internet connection and show dialog if needed
+        if (NetworkUtils.isInternetConnected(this)) {
+            // Internet is connected, proceed with operations
+            if (PermissionUtils.hasMicrophonePermission(this)) {
+                startListening()
+            } else {
+                PermissionUtils.requestMicrophonePermission(this)
+            }
+
+        } else {
+            // Internet is not connected, show dialog to user
+            NetworkUtils.showInternetRequiredDialog(this)
+        }
         if (PermissionUtils.hasNotificationPermission(this)) {
             // NotificationUtils.showNotification(this)
         } else {
             PermissionUtils.requestNotificationPermission(this)
         }
 
-        if (PermissionUtils.hasMicrophonePermission(this)) {
-            startListening()
-        } else {
-            PermissionUtils.requestMicrophonePermission(this)
-        }
+
+
     }
 
     private fun showNotification() {
@@ -295,21 +310,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
     }
 
     override fun onInit(status: Int) {
-        if (status == TextToSpeech.SUCCESS) {
-            val locale = Locale("hin", "IND")
-            val result = textToSpeechManager.textToSpeech.setLanguage(locale)
-            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                Toast.makeText(
-                    this,
-                    "Text-to-Speech not supported in this language",
-                    Toast.LENGTH_SHORT
-                ).show()
-            } else {
-                textToSpeechManager.textToSpeech.setSpeechRate(0.8f)
-            }
-        } else {
-            Toast.makeText(this, "Text-to-Speech initialization failed", Toast.LENGTH_SHORT).show()
-        }
     }
 
     override fun onResult(numbers: List<Int>) {
@@ -357,18 +357,21 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         }
     }
 
-
     override fun onError(errorMessage: String) {
         resultTextView.text = errorMessage
         ButtonStyleUtils.setStartStyle(this, yourButton, card1)
         listeningDone()
     }
 
-    private fun getCurrentTime(): String {
-        val calendar = Calendar.getInstance()
-        val hour = calendar.get(Calendar.HOUR_OF_DAY)
-        val minute = calendar.get(Calendar.MINUTE)
-        val second = calendar.get(Calendar.SECOND)
-        return String.format("%02d:%02d:%02d", hour, minute, second)
+    private fun getCurrentTime(): Long {
+        return Calendar.getInstance().timeInMillis
     }
+
+    private fun convertTime(milliseconds: Long): String {
+        val sdf = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+        sdf.timeZone = TimeZone.getTimeZone("GMT")
+        return sdf.format(milliseconds)
+    }
+
+
 }

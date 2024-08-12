@@ -62,7 +62,6 @@
                     android:layout_marginTop="18dp"
                     android:layout_weight="1"
                     android:background="?android:attr/selectableItemBackground"
-                    android:onClick="sharePDF"
                     android:src="@drawable/baseline_print_white_24" />
 
             </LinearLayout>
@@ -143,7 +142,6 @@
                 android:layout_margin="8dp"
                 android:padding="8dp"
                 android:backgroundTint="@color/blue"
-                android:onClick="editData"
                 android:scaleType="centerCrop"
                 android:src="@drawable/edit_24px"
                 app:tint="@color/white"/>
