@@ -6,9 +6,36 @@
     android:layout_height="match_parent">
 
     <LinearLayout
+        android:id="@+id/pending_popup"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#520909"
+        android:padding="8dp"
+        android:gravity="center"
+        android:visibility="visible"
+        android:layout_alignParentTop="true"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/white"
+            android:text="No Internet Connection   \u25CF   "/>
+
+        <TextView
+            android:id="@+id/offline_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/white"
+            android:text="Pending Uploads : 5"/>
+
+    </LinearLayout>
+
+    <LinearLayout
         android:id="@+id/card1"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_below="@+id/pending_popup"
         android:layout_margin="12dp"
         android:background="@drawable/card"
         android:backgroundTint="@color/blue"

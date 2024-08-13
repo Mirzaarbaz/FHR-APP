@@ -2,11 +2,14 @@ package com.example.version0
 
 import SpeechRecognitionManager
 import android.annotation.SuppressLint
+import android.content.IntentFilter
 import android.media.AudioManager
 import android.media.MediaPlayer
+import android.net.ConnectivityManager
 import android.os.Build
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
+import android.view.View
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.LinearLayout
@@ -16,8 +19,13 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.jjoe64.graphview.GraphView
 import okhttp3.OkHttpClient
+import org.json.JSONArray
+import org.json.JSONException
+import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -55,6 +63,11 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
 
     private var patientId: Int? = null
 
+    private lateinit var networkChangeReceiver: NetworkChangeReceiver
+    private lateinit var pendingPopup: LinearLayout
+
+
+
 
     @SuppressLint("MissingInflatedId")
     @RequiresApi(Build.VERSION_CODES.Q)
@@ -75,6 +88,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         resultTextView = findViewById(R.id.resultTextView)
         finishButton = findViewById(R.id.finish)
         progressBar = findViewById(R.id.progressBar)
+        pendingPopup = findViewById(R.id.pending_popup)
+
 
         // Initialize ApiHelper
         val client = OkHttpClient()
@@ -93,6 +108,23 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         // Initialize SpeechRecognitionManager
         speechRecognitionManager = SpeechRecognitionManager(this)
         speechRecognitionManager.setResultListener(this)
+
+
+        // Initialize the network change receiver
+        networkChangeReceiver = NetworkChangeReceiver {
+            uploadOfflineData()
+            updateOfflineCount()
+
+            // Update visibility based on current connectivity
+            updatePendingPopupVisibility()
+        }
+
+// Register the receiver for network changes
+        val intentFilter = IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION)
+        registerReceiver(networkChangeReceiver, intentFilter)
+
+        // Call the function to update visibility based on the current connection status
+        updatePendingPopupVisibility()
 
         // Initialize UserNameDialog with a callback to update UI and determine which button was clicked
         userNameDialog = UserNameDialog(this, { name, number, buttonClicked ->
@@ -152,12 +184,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         }
 
         finishButton.setOnClickListener {
-            // Show the confirmation dialog
             AppUtils.showConfirmationDialog(
                 this, pdfUtils, clockTextView, graph, speechLogTable, userName, userNumber
             ) {
-                // This is the callback of type () -> Unit
-                // Prepare data for upload
                 val (textViewData, tableData) = DataPreparationUtils.prepareDataForUpload(
                     pname.text.toString(),
                     dilation.text.toString(),
@@ -165,15 +194,19 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
                     speechLogTable
                 )
 
-                // Save data to the server
                 apiHelper.saveOrUpdateData(patientId, textViewData, tableData) { success, id ->
                     runOnUiThread {
                         if (success) {
-                            Toast.makeText(this, "Data saved successfully", Toast.LENGTH_SHORT)
-                                .show()
+                            if (patientId == null) {
+                                patientId = id
+                            }
+                            Toast.makeText(this, "Data saved successfully", Toast.LENGTH_SHORT).show()
                             resetApp()
                         } else {
-                            Toast.makeText(this, "Failed to save data", Toast.LENGTH_SHORT).show()
+//                            Toast.makeText(this, "Failed to save data", Toast.LENGTH_SHORT).show()
+                            // Append new data to the list in shared preferences
+                            saveDataOffline(textViewData, tableData, patientId)
+                            resetApp()
                         }
                     }
                 }
@@ -181,7 +214,126 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         }
 
 
+
     }
+
+    private fun updatePendingPopupVisibility() {
+        if (NetworkUtils.isInternetConnected(this)) {
+            pendingPopup.visibility = View.GONE  // Hide the pending popup
+        } else {
+            pendingPopup.visibility = View.VISIBLE  // Show the pending popup
+        }
+    }
+
+
+    private fun updateOfflineCount() {
+
+        val sharedPreferences = getSharedPreferences("offline_data", MODE_PRIVATE)
+        val offlineDataJson = sharedPreferences.getString("offline_data_list", null)
+        val pendingCountTextView: TextView = findViewById(R.id.offline_count)
+
+        if (offlineDataJson != null) {
+            val type = object : TypeToken<MutableList<Map<String, Any>>>() {}.type
+            val offlineDataList = Gson().fromJson<MutableList<Map<String, Any>>>(offlineDataJson, type)
+
+            // Count pending records
+            val pendingCount = offlineDataList.count { (it["status"] as? String) == "pending" }
+
+            // Update TextView with the count
+            pendingCountTextView.text = "Pending Records: $pendingCount"
+        } else {
+            // No offline data
+            pendingCountTextView.text = "Pending Records: 0"
+        }
+        updatePendingPopupVisibility()
+    }
+
+
+    private fun saveDataOffline(textViewData: Map<String, Any>, tableData: String, patientId: Int?) {
+        val sharedPreferences = getSharedPreferences("offline_data", MODE_PRIVATE)
+        val editor = sharedPreferences.edit()
+
+        // Get existing offline data list or create a new one
+        val offlineDataList = mutableListOf<Map<String, Any>>()
+        val existingDataJson = sharedPreferences.getString("offline_data_list", null)
+        if (existingDataJson != null) {
+            val type = object : TypeToken<MutableList<Map<String, Any>>>() {}.type
+            val existingData = Gson().fromJson<MutableList<Map<String, Any>>>(existingDataJson, type)
+            offlineDataList.addAll(existingData)
+        }
+
+        // Add new data to the list with a status of "pending"
+        val dataToSave = mutableMapOf<String, Any>().apply {
+            put("textViewData", textViewData)
+            put("tableData", tableData)
+            put("patientId", patientId?.toString() ?: "-1")  // Use -1 or some other default value if patientId is null
+            put("status", "pending")  // Add status field
+        }
+        offlineDataList.add(dataToSave)
+
+        // Save the updated list back to shared preferences
+        val updatedDataJson = Gson().toJson(offlineDataList)
+        editor.putString("offline_data_list", updatedDataJson)
+        editor.apply()
+
+        updateOfflineCount()
+    }
+
+    private fun uploadOfflineData() {
+        val sharedPreferences = getSharedPreferences("offline_data", MODE_PRIVATE)
+        val offlineDataJson = sharedPreferences.getString("offline_data_list", null)
+
+        if (offlineDataJson != null) {
+            val type = object : TypeToken<MutableList<MutableMap<String, Any>>>() {}.type
+            val offlineDataList = Gson().fromJson<MutableList<MutableMap<String, Any>>>(offlineDataJson, type)
+            val editor = sharedPreferences.edit()
+
+            // Iterate through the list of offline data
+            for (data in offlineDataList) {
+                val status = data["status"] as? String
+                if (status == "pending") {
+                    val textViewData = data["textViewData"] as Map<String, Any>
+                    val tableData = data["tableData"] as String
+                    val patientIdString = data["patientId"] as? String
+
+                    val patientId: Int? = patientIdString?.toIntOrNull()  // Convert to Int safely
+
+                    if (patientId != null && patientId != -1) {
+                        // Update existing data
+                        apiHelper.saveOrUpdateData(patientId, textViewData, tableData) { success, id ->
+                            runOnUiThread {
+                                if (success) {
+                                    offlineDataList.remove(data)
+                                    val updatedDataJson = Gson().toJson(offlineDataList)
+                                    editor.putString("offline_data_list", updatedDataJson)
+                                    editor.apply()
+                                }
+                            }
+                        }
+                    } else {
+                        // Insert new data
+                        apiHelper.saveOrUpdateData(null, textViewData, tableData) { success, newId ->
+                            runOnUiThread {
+                                if (success) {
+                                    // Update the patientId in the offline data list
+                                    if (newId != null) {
+                                        data["patientId"] = newId.toString()  // Update with new patientId as String
+                                        val updatedDataJson = Gson().toJson(offlineDataList)
+                                        editor.putString("offline_data_list", updatedDataJson)
+                                        editor.apply()
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                updateOfflineCount()
+            }
+        }
+    }
+
+
+
 
     override fun onNetworkActionCancelled() {
         // Handle network action cancellation (e.g., restart listening)
@@ -271,6 +423,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
 
     override fun onDestroy() {
         super.onDestroy()
+        unregisterReceiver(networkChangeReceiver)
         clockManager.stopClock()
         if (::mediaPlayer.isInitialized) {
             mediaPlayer.release() // Release MediaPlayer resources
@@ -281,6 +434,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         // Check internet connection and show dialog if needed
         if (NetworkUtils.isInternetConnected(this)) {
             // Internet is connected, proceed with operations
+            updatePendingPopupVisibility()
             if (PermissionUtils.hasMicrophonePermission(this)) {
                 startListening()
             } else {
