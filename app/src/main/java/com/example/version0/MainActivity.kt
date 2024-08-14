@@ -216,8 +216,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         }
     }
 
-
-
     override fun onNetworkActionCancelled() {
         // Handle network action cancellation (e.g., restart listening)
         startListening()
