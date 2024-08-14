@@ -19,6 +19,10 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import com.example.version0.OfflineDataUtils.saveDataOffline
+import com.example.version0.OfflineDataUtils.uploadOfflineData
+import com.example.version0.PendingPopupUtils.updateOfflineCount
+import com.example.version0.PendingPopupUtils.updatePendingPopupVisibility
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.jjoe64.graphview.GraphView
@@ -67,8 +71,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
     private lateinit var pendingPopup: LinearLayout
 
 
-
-
     @SuppressLint("MissingInflatedId")
     @RequiresApi(Build.VERSION_CODES.Q)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -113,9 +115,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
 
         // Initialize the network change receiver
         networkChangeReceiver = NetworkChangeReceiver {
-            uploadOfflineData()
-            updateOfflineCount()
-            updatePendingPopupVisibility()  // Update visibility on network change
+            uploadOfflineData(this,apiHelper)
+            updateOfflineCount(this)
+            updatePendingPopupVisibility(this,pendingPopup)  // Update visibility on network change
         }
 
         // Register the receiver for network changes
@@ -123,7 +125,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         registerReceiver(networkChangeReceiver, intentFilter)
 
         // Call the function to update visibility based on the current connection status
-        updatePendingPopupVisibility()
+        updatePendingPopupVisibility(this,pendingPopup)
 
 
         // Initialize UserNameDialog with a callback to update UI and determine which button was clicked
@@ -205,136 +207,14 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
                         } else {
 //                            Toast.makeText(this, "Failed to save data", Toast.LENGTH_SHORT).show()
                             // Append new data to the list in shared preferences
-                            saveDataOffline(textViewData, tableData, patientId)
+                            saveDataOffline(this, textViewData, tableData, patientId)
                             resetApp()
                         }
                     }
                 }
             }
         }
-
-
-
     }
-
-    private fun updatePendingPopupVisibility() {
-        updateOfflineCount()
-        if (NetworkUtils.isInternetConnected(this)) {
-            pendingPopup.visibility = View.GONE  // Hide the pending popup
-        } else {
-            pendingPopup.visibility = View.VISIBLE  // Show the pending popup
-        }
-    }
-
-
-
-    private fun updateOfflineCount() {
-        val sharedPreferences = getSharedPreferences("offline_data", MODE_PRIVATE)
-        val offlineDataJson = sharedPreferences.getString("offline_data_list", null)
-        val pendingCountTextView: TextView = findViewById(R.id.offline_count)
-
-        // Load and process offline data
-        val offlineDataList = if (offlineDataJson != null) {
-            val type = object : TypeToken<MutableList<Map<String, Any>>>() {}.type
-            Gson().fromJson<MutableList<Map<String, Any>>>(offlineDataJson, type)
-        } else {
-            mutableListOf() // Return an empty list if no data is found
-        }
-
-        // Count pending records
-        val pendingCount = offlineDataList.count { (it["status"] as? String) == "pending" }
-
-        // Update TextView with the count
-        pendingCountTextView.text = "Pending Records: $pendingCount"
-
-//        // Ensure popup visibility is updated
-//        updatePendingPopupVisibility()
-    }
-
-
-    private fun saveDataOffline(textViewData: Map<String, Any>, tableData: String, patientId: Int?) {
-        val sharedPreferences = getSharedPreferences("offline_data", MODE_PRIVATE)
-        val editor = sharedPreferences.edit()
-
-        // Get existing offline data list or create a new one
-        val offlineDataList = mutableListOf<Map<String, Any>>()
-        val existingDataJson = sharedPreferences.getString("offline_data_list", null)
-        if (existingDataJson != null) {
-            val type = object : TypeToken<MutableList<Map<String, Any>>>() {}.type
-            val existingData = Gson().fromJson<MutableList<Map<String, Any>>>(existingDataJson, type)
-            offlineDataList.addAll(existingData)
-        }
-
-        // Add new data to the list with a status of "pending"
-        val dataToSave = mutableMapOf<String, Any>().apply {
-            put("textViewData", textViewData)
-            put("tableData", tableData)
-            put("patientId", patientId?.toString() ?: "-1")  // Use -1 or some other default value if patientId is null
-            put("status", "pending")  // Add status field
-        }
-        offlineDataList.add(dataToSave)
-
-        // Save the updated list back to shared preferences
-        val updatedDataJson = Gson().toJson(offlineDataList)
-        editor.putString("offline_data_list", updatedDataJson)
-        editor.apply()
-
-        updateOfflineCount()
-    }
-
-    private fun uploadOfflineData() {
-        val sharedPreferences = getSharedPreferences("offline_data", MODE_PRIVATE)
-        val offlineDataJson = sharedPreferences.getString("offline_data_list", null)
-
-        if (offlineDataJson != null) {
-            val type = object : TypeToken<MutableList<MutableMap<String, Any>>>() {}.type
-            val offlineDataList = Gson().fromJson<MutableList<MutableMap<String, Any>>>(offlineDataJson, type)
-            val editor = sharedPreferences.edit()
-
-            // Iterate through the list of offline data
-            for (data in offlineDataList) {
-                val status = data["status"] as? String
-                if (status == "pending") {
-                    val textViewData = data["textViewData"] as Map<String, Any>
-                    val tableData = data["tableData"] as String
-                    val patientIdString = data["patientId"] as? String
-
-                    val patientId: Int? = patientIdString?.toIntOrNull()  // Convert to Int safely
-
-                    if (patientId != null && patientId != -1) {
-                        // Update existing data
-                        apiHelper.saveOrUpdateData(patientId, textViewData, tableData) { success, id ->
-                            runOnUiThread {
-                                if (success) {
-                                    offlineDataList.remove(data)
-                                    val updatedDataJson = Gson().toJson(offlineDataList)
-                                    editor.putString("offline_data_list", updatedDataJson)
-                                    editor.apply()
-                                }
-                            }
-                        }
-                    } else {
-                        // Insert new data
-                        apiHelper.saveOrUpdateData(null, textViewData, tableData) { success, newId ->
-                            runOnUiThread {
-                                if (success) {
-                                    // Update the patientId in the offline data list
-                                    if (newId != null) {
-                                        data["patientId"] = newId.toString()  // Update with new patientId as String
-                                        val updatedDataJson = Gson().toJson(offlineDataList)
-                                        editor.putString("offline_data_list", updatedDataJson)
-                                        editor.apply()
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                updateOfflineCount()
-            }
-        }
-    }
-
 
 
 
@@ -437,7 +317,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         // Check internet connection and show dialog if needed
         if (NetworkUtils.isInternetConnected(this)) {
             // Internet is connected, proceed with operations
-            updatePendingPopupVisibility()
+            updatePendingPopupVisibility(this,pendingPopup)
             if (PermissionUtils.hasMicrophonePermission(this)) {
                 startListening()
             } else {
