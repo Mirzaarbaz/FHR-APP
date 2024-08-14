@@ -1,6 +1,5 @@
 package com.example.version0
 
-
 import android.content.Context
 import android.content.Intent
 import android.net.ConnectivityManager
@@ -21,7 +20,6 @@ object NetworkUtils {
         networkActionListener = listener
     }
 
-    // Network Utility
     fun isInternetConnected(context: Context): Boolean {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -29,25 +27,27 @@ object NetworkUtils {
             val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
             capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
         } else {
-            val networkInfo = connectivityManager.activeNetworkInfo ?: return false
-            networkInfo.isConnected
+            @Suppress("DEPRECATION")
+            val networkInfo = connectivityManager.activeNetworkInfo
+            networkInfo != null && networkInfo.isConnected
         }
     }
 
-    // Dialog Utility
     fun showInternetRequiredDialog(context: Context) {
         val builder = AlertDialog.Builder(context)
-        builder.setTitle("Internet Required")
+        builder.setTitle("Internet Required for Hindi Voice")
         builder.setMessage("Hindi voice recognition requires internet connection. Please enable it in your settings.")
         builder.setPositiveButton("Open Settings") { _, _ ->
             // Open network settings
             val intent = Intent(Settings.ACTION_WIRELESS_SETTINGS)
             context.startActivity(intent)
         }
-        builder.setNegativeButton("Cancel") { dialog, _ ->
+        builder.setNegativeButton("Continue with English") { dialog, _ ->
             networkActionListener?.onNetworkActionCancelled()
             dialog.dismiss()
         }
         builder.show()
     }
 }
+
+

@@ -9,7 +9,7 @@
         android:id="@+id/pending_popup"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#520909"
+        android:background="@drawable/gradient_card"
         android:padding="8dp"
         android:gravity="center"
         android:visibility="visible"

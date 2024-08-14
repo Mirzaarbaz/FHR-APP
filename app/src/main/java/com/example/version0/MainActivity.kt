@@ -110,21 +110,21 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         speechRecognitionManager.setResultListener(this)
 
 
+
         // Initialize the network change receiver
         networkChangeReceiver = NetworkChangeReceiver {
             uploadOfflineData()
             updateOfflineCount()
-
-            // Update visibility based on current connectivity
-            updatePendingPopupVisibility()
+            updatePendingPopupVisibility()  // Update visibility on network change
         }
 
-// Register the receiver for network changes
+        // Register the receiver for network changes
         val intentFilter = IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION)
         registerReceiver(networkChangeReceiver, intentFilter)
 
         // Call the function to update visibility based on the current connection status
         updatePendingPopupVisibility()
+
 
         // Initialize UserNameDialog with a callback to update UI and determine which button was clicked
         userNameDialog = UserNameDialog(this, { name, number, buttonClicked ->
@@ -218,6 +218,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
     }
 
     private fun updatePendingPopupVisibility() {
+        updateOfflineCount()
         if (NetworkUtils.isInternetConnected(this)) {
             pendingPopup.visibility = View.GONE  // Hide the pending popup
         } else {
@@ -226,26 +227,28 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
     }
 
 
-    private fun updateOfflineCount() {
 
+    private fun updateOfflineCount() {
         val sharedPreferences = getSharedPreferences("offline_data", MODE_PRIVATE)
         val offlineDataJson = sharedPreferences.getString("offline_data_list", null)
         val pendingCountTextView: TextView = findViewById(R.id.offline_count)
 
-        if (offlineDataJson != null) {
+        // Load and process offline data
+        val offlineDataList = if (offlineDataJson != null) {
             val type = object : TypeToken<MutableList<Map<String, Any>>>() {}.type
-            val offlineDataList = Gson().fromJson<MutableList<Map<String, Any>>>(offlineDataJson, type)
-
-            // Count pending records
-            val pendingCount = offlineDataList.count { (it["status"] as? String) == "pending" }
-
-            // Update TextView with the count
-            pendingCountTextView.text = "Pending Records: $pendingCount"
+            Gson().fromJson<MutableList<Map<String, Any>>>(offlineDataJson, type)
         } else {
-            // No offline data
-            pendingCountTextView.text = "Pending Records: 0"
+            mutableListOf() // Return an empty list if no data is found
         }
-        updatePendingPopupVisibility()
+
+        // Count pending records
+        val pendingCount = offlineDataList.count { (it["status"] as? String) == "pending" }
+
+        // Update TextView with the count
+        pendingCountTextView.text = "Pending Records: $pendingCount"
+
+//        // Ensure popup visibility is updated
+//        updatePendingPopupVisibility()
     }
 
 
