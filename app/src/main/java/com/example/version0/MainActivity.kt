@@ -164,11 +164,11 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
 
         // Setup PDF sharing with a 5-second loader
         shareButton.setOnClickListener {
-//            AppUtils.showLoaderAndSharePDF(
-//                this, pdfUtils, clockTextView,
-//                graph, speechLogTable, userName, userNumber
-//            )
-            showNotification()
+            AppUtils.showLoaderAndSharePDF(
+                this, pdfUtils, clockTextView,
+                graph, speechLogTable, userName, userNumber
+            )
+//            showNotification()
         }
 
         yourButton.setOnClickListener {
