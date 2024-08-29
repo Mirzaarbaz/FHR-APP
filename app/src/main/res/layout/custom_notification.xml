@@ -1,38 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:padding="16dp"
-    android:background="@color/maroon"> <!-- Pink background -->
+    android:orientation="horizontal"
+    android:layout_gravity="center_horizontal"
+    android:padding="8dp">
 
     <ImageView
         android:id="@+id/icon"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:src="@drawable/baseline_graphic_eq_black_48"
-        app:tint="@color/white"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:src="@drawable/ic_baseline_graphic_eq"
+        app:tint="@color/maroon"
         android:layout_alignParentStart="true"
         android:layout_alignParentLeft="true"/>
 
-    <TextView
-        android:id="@+id/notification_title"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Say Fetal Heart Rate"
-        android:textColor="#FFFFFF"
-        android:layout_toEndOf="@id/icon"
-        android:layout_marginLeft="16dp"
-        android:textStyle="bold"
-        android:textSize="18sp" />
+<TextView
+    android:layout_marginLeft="16dp"
+    android:id="@+id/notification_title"
+    android:text="Say Fetal Heart Rate"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:textColor="@color/maroon"
+    android:textStyle="bold"
+    android:textSize="18sp" />
 
-    <TextView
-        android:id="@+id/notification_text"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/notification_title"
-        android:layout_toEndOf="@id/icon"
-        android:layout_marginLeft="16dp"
-        android:text="Listening..."
-        android:textColor="#FFFFFF" />
-</RelativeLayout>
+    </LinearLayout>

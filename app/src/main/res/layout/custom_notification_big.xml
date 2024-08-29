@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center_horizontal"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:padding="16dp"> <!-- Pink background -->
+
+    <ImageView
+        android:id="@+id/icon"
+        android:layout_width="46dp"
+        android:layout_height="46dp"
+        android:padding="6dp"
+        android:src="@drawable/ic_baseline_graphic_eq"
+        app:tint="@color/maroon"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentLeft="true"/>
+
+    <TextView
+        android:id="@+id/notification_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Say Fetal Heart Rate"
+        android:textColor="@color/maroon"
+        android:layout_toEndOf="@id/icon"
+        android:layout_marginLeft="16dp"
+        android:layout_marginRight="32dp"
+        android:textStyle="bold"
+        android:textSize="18sp" />
+
+    <TextView
+        android:id="@+id/notification_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/notification_title"
+        android:layout_toEndOf="@id/icon"
+        android:layout_marginLeft="16dp"
+        android:text="Listening..."
+        android:textColor="@color/maroon"/>
+</RelativeLayout>
