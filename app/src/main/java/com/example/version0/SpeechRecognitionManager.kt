@@ -20,7 +20,7 @@ class SpeechRecognitionManager(private val context: Context) : RecognitionListen
     private var resultListener: ResultListener? = null
     private val handler = Handler(Looper.getMainLooper())
     var retryCount = 0
-    private val maxRetries = 3
+    private val maxRetries = 2
 
     init {
         speechRecognizer.setRecognitionListener(this)
@@ -54,10 +54,10 @@ class SpeechRecognitionManager(private val context: Context) : RecognitionListen
                 retryCount = 0 // Reset retry count on success
                 resultListener?.onResult(numericMatches)
             }
-            else{
-                resultListener?.onError("Try Again")
-                restartSpeechRecognitionAfterDelay()
-            }
+//            else{
+//                resultListener?.onError("Try Again")
+//                restartSpeechRecognitionAfterDelay()
+//            }
         }
     }
 
@@ -75,7 +75,7 @@ class SpeechRecognitionManager(private val context: Context) : RecognitionListen
                     ButtonStyleUtils.setListeningStyle(context, context.startButton, context.card1)
                 }
                 startSpeechRecognition()
-            }, 2000) // 2 seconds delay
+            }, 3000) // 3 seconds delay
         } else {
             // Notify the listener about maximum retries reached
             resultListener?.onError("Click Start")

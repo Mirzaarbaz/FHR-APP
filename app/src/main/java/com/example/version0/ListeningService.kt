@@ -72,7 +72,11 @@ class ListeningService : Service(), ResultListener {
         if (!mediaPlayer.isPlaying) {
             mediaPlayer.start()
         } else {
-            startSpeechRecognition()
+
+            handler.postDelayed({
+                startSpeechRecognition()
+            }, 2500) // 2.5 seconds delay
+
         }
     }
 
