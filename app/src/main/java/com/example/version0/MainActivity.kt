@@ -2,12 +2,16 @@ package com.example.version0
 
 import SpeechRecognitionManager
 import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
 import android.content.IntentFilter
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.net.ConnectivityManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
 import android.speech.tts.TextToSpeech
 import android.view.View
 import android.widget.Button
@@ -46,7 +50,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
     private lateinit var progressBar: ProgressBar
     private lateinit var pdfUtils: PDFUtils
     private lateinit var finishButton: Button
-    lateinit var yourButton: Button
+    lateinit var startButton: Button
     private lateinit var shareButton: ImageButton
     private lateinit var editButton: ImageButton
     lateinit var card1: LinearLayout
@@ -69,6 +73,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
 
     private lateinit var networkChangeReceiver: NetworkChangeReceiver
     private lateinit var pendingPopup: LinearLayout
+    private lateinit var uiUpdateReceiver: BroadcastReceiver
+    private lateinit var handler: Handler
 
 
     @SuppressLint("MissingInflatedId")
@@ -83,7 +89,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         dilation = findViewById(R.id.dia)
         graph = findViewById(R.id.graph)
         speechLogTable = findViewById(R.id.speechLogTable)
-        yourButton = findViewById(R.id.yourButton)
+        startButton = findViewById(R.id.yourButton)
         editButton = findViewById(R.id.edit)
         shareButton = findViewById(R.id.shareButton)
         card1 = findViewById(R.id.card1)
@@ -111,7 +117,21 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         speechRecognitionManager = SpeechRecognitionManager(this)
         speechRecognitionManager.setResultListener(this)
 
+//        // Start the service
+//        val serviceIntent = Intent(this, ListeningService::class.java)
+//        startService(serviceIntent)
 
+        // Register BroadcastReceiver
+        uiUpdateReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                val result = intent?.getStringExtra("result")
+                resultTextView.text = result
+            }
+        }
+
+        // Use IntentFilter and specify the exported flag
+        val intentFilter1 = IntentFilter("UPDATE_UI")
+        registerReceiver(uiUpdateReceiver, intentFilter1, Context.RECEIVER_NOT_EXPORTED)
 
         // Initialize the network change receiver
         networkChangeReceiver = NetworkChangeReceiver {
@@ -168,18 +188,20 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
                 this, pdfUtils, clockTextView,
                 graph, speechLogTable, userName, userNumber
             )
-//            showNotification()
         }
 
-        yourButton.setOnClickListener {
-            if (isFirstClick) {
-                showUserNameDialog("yourButton")
-                isFirstClick = false
-            } else {
+        startButton.setOnClickListener {
+//            if (isFirstClick) {
+//                showUserNameDialog("yourButton")
+//                isFirstClick = false
+//            } else {
                 clockManager.startClock()
                 checkAndRequestPermissions()
-            }
+                // Start the listening service
+                startListeningService()
+//            }
         }
+
 
         editButton.setOnClickListener {
             showUserNameDialog("editButton")
@@ -216,6 +238,38 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
             }
         }
     }
+
+    // In your MainActivity
+
+    private fun startListeningService() {
+        val intent = Intent(this, ListeningService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(intent)
+        } else {
+            startService(intent)
+        }
+    }
+
+    private fun stopListeningService() {
+        val intent = Intent(this, ListeningService::class.java)
+        stopService(intent)
+    }
+
+
+//    // Call to start the ListeningService
+//    private fun startListeningService() {
+//        val serviceIntent = Intent(this, ListeningService::class.java)
+//        startService(serviceIntent)
+//    }
+//
+//    // Call to stop the ListeningService
+//    private fun stopListeningService() {
+//        val serviceIntent = Intent(this, ListeningService::class.java)
+//        stopService(serviceIntent)
+//        handler.removeCallbacksAndMessages(null) // Stop the handler if it's running
+//    }
+
+
 
     override fun onNetworkActionCancelled() {
         // Handle network action cancellation (e.g., restart listening)
@@ -254,7 +308,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         }
         mediaPlayer.setOnCompletionListener {
             runOnUiThread {
-                ButtonStyleUtils.setListeningStyle(this@MainActivity, yourButton, card1)
+                ButtonStyleUtils.setListeningStyle(this@MainActivity, startButton, card1)
                 speechRecognitionManager.startSpeechRecognition()
             }
         }
@@ -287,6 +341,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
     private fun resetApp() {
         isFirstClick = true
         speechCounter = 1
+        stopListeningService()
         AppUtils.resetApp(
             this,
             clockTextView,
@@ -306,10 +361,12 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
     override fun onDestroy() {
         super.onDestroy()
         unregisterReceiver(networkChangeReceiver)
+        unregisterReceiver(uiUpdateReceiver)
         clockManager.stopClock()
         if (::mediaPlayer.isInitialized) {
             mediaPlayer.release() // Release MediaPlayer resources
         }
+        stopListeningService()
     }
 
     private fun checkAndRequestPermissions() {
@@ -364,7 +421,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
             )
             speechCounter++
 
-            ButtonStyleUtils.setStartStyle(this, yourButton, card1)
+            ButtonStyleUtils.setStartStyle(this, startButton, card1)
             listeningDone()
 
             // Prepare data for upload
@@ -395,7 +452,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
 
     override fun onError(errorMessage: String) {
         resultTextView.text = errorMessage
-        ButtonStyleUtils.setStartStyle(this, yourButton, card1)
+        ButtonStyleUtils.setStartStyle(this, startButton, card1)
         listeningDone()
     }
 
