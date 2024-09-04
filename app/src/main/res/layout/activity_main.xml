@@ -60,7 +60,8 @@
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
+            android:paddingBottom="22dp"
             android:orientation="vertical"
             tools:ignore="ExtraText">
 
@@ -96,19 +97,21 @@
             <TextView
                 android:id="@+id/resultTextView"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:layout_gravity="center"
+                android:autoSizeTextType="uniform"
+                android:autoSizeStepGranularity="2sp"
                 android:layout_marginLeft="12dp"
-                android:layout_marginRight="12dp"
+                android:layout_marginRight="18dp"
                 android:gravity="center"
                 android:maxLines="1"
                 android:text="000"
                 android:textColor="@color/white"
-                android:textSize="55sp"
+                android:textSize="55dp"
                 android:textStyle="bold"
-                app:autoSizeMaxTextSize="88sp"
                 app:autoSizeMinTextSize="12sp"
-                app:autoSizeTextType="uniform" />
+                app:autoSizeTextType="uniform"
+                tools:ignore="UnusedAttribute" />
 
         </LinearLayout>
 

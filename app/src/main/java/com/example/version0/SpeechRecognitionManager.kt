@@ -13,21 +13,24 @@ import com.example.version0.MainActivity
 import com.example.version0.ResultListener
 import java.util.Locale
 
-
 class SpeechRecognitionManager(private val context: Context) : RecognitionListener {
 
     private val speechRecognizer: SpeechRecognizer = SpeechRecognizer.createSpeechRecognizer(context)
     private var resultListener: ResultListener? = null
     private val handler = Handler(Looper.getMainLooper())
     var retryCount = 0
-    private val maxRetries = 2
+    private val maxRetries = 1
 
     init {
         speechRecognizer.setRecognitionListener(this)
     }
 
     fun startSpeechRecognition() {
-        Toast.makeText(context, "rc "+retryCount.toString(), Toast.LENGTH_SHORT).show()
+        // Send broadcast that listening has started
+        val intent1 = Intent("LISTENING_STARTED")
+        context.sendBroadcast(intent1)
+
+        Toast.makeText(context, "rc " + retryCount.toString(), Toast.LENGTH_SHORT).show()
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale("hi", "IN")) // Hindi locale
@@ -54,16 +57,20 @@ class SpeechRecognitionManager(private val context: Context) : RecognitionListen
                 retryCount = 0 // Reset retry count on success
                 resultListener?.onResult(numericMatches)
             }
-//            else{
-//                resultListener?.onError("Try Again")
-//                restartSpeechRecognitionAfterDelay()
-//            }
         }
+
+        // Send broadcast that listening has stopped
+        val intent = Intent("LISTENING_STOPPED")
+        context.sendBroadcast(intent)
     }
 
     override fun onError(error: Int) {
         resultListener?.onError("Speak Again")
         restartSpeechRecognitionAfterDelay()
+
+        // Send broadcast that listening has stopped
+        val intent = Intent("LISTENING_STOPPED")
+        context.sendBroadcast(intent)
     }
 
     fun restartSpeechRecognitionAfterDelay() {
@@ -75,10 +82,10 @@ class SpeechRecognitionManager(private val context: Context) : RecognitionListen
                     ButtonStyleUtils.setListeningStyle(context, context.startButton, context.card1)
                 }
                 startSpeechRecognition()
-            }, 3000) // 3 seconds delay
+            }, 2000) // 2 seconds delay
         } else {
             // Notify the listener about maximum retries reached
-            resultListener?.onError("Click Start")
+            resultListener?.onError("Start Again")
         }
     }
 
@@ -89,7 +96,10 @@ class SpeechRecognitionManager(private val context: Context) : RecognitionListen
     override fun onBeginningOfSpeech() {}
     override fun onRmsChanged(rmsdB: Float) {}
     override fun onBufferReceived(buffer: ByteArray?) {}
-    override fun onEndOfSpeech() {}
+    override fun onEndOfSpeech() {
+        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        audioManager.setStreamMute(AudioManager.STREAM_MUSIC, false)
+    }
 
     private fun extractNumeric(text: String): List<Int> {
         val words = text.split("\\s+".toRegex())

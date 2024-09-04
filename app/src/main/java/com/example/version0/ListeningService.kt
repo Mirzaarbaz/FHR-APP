@@ -13,14 +13,18 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.util.Log
 import androidx.core.app.NotificationCompat
 
 class ListeningService : Service(), ResultListener {
 
-    private lateinit var mediaPlayer: MediaPlayer
-    private lateinit var speechRecognitionManager: SpeechRecognitionManager
     private lateinit var handler: Handler
-    private val interval: Long = 30000 // 60 seconds
+    private val interval: Long = 30000 // 30 seconds
+
+    private lateinit var mediaPlayerManager: MediaPlayerManager
+    private lateinit var speechRecognitionManager: SpeechRecognitionManager
+
+    val UIintent = Intent("UPDATE_UI")
 
     override fun onCreate() {
         super.onCreate()
@@ -35,19 +39,20 @@ class ListeningService : Service(), ResultListener {
         // Start periodic task
         handler.postDelayed(runnableTask, interval)
 
-        // Start the service as a foreground service
-//        startForegroundService()
-    }
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // Start periodic task
-        handler.postDelayed(runnableTask, interval)
+        // Initialize MediaPlayerManager
+        mediaPlayerManager = MediaPlayerManager(this)
+        mediaPlayerManager.initializeMediaPlayer()
 
         // Start the service as a foreground service
+        startForegroundService()
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        handler.postDelayed(runnableTask, interval)
         startForegroundService()
         return START_STICKY
     }
 
-    // This method will handle stopping the service
     private fun stopForegroundService() {
         stopForeground(true)
         stopSelf()
@@ -56,32 +61,18 @@ class ListeningService : Service(), ResultListener {
     private val runnableTask = object : Runnable {
         override fun run() {
             startListening()
-            handler.postDelayed(this, interval) // Re-run the task after 60 seconds
+            handler.postDelayed(this, interval) // Re-run the task after 30 seconds
         }
     }
 
     private fun startListening() {
-        // Ensure MediaPlayer is initialized and start it every cycle
-        if (!::mediaPlayer.isInitialized) {
-            mediaPlayer = MediaPlayer.create(this, R.raw.fhr)
-            mediaPlayer.setOnCompletionListener {
-                startSpeechRecognition()
-            }
-        }
-
-        if (!mediaPlayer.isPlaying) {
-            mediaPlayer.start()
-        } else {
-
-            handler.postDelayed({
-                startSpeechRecognition()
-            }, 2500) // 2.5 seconds delay
-
+        mediaPlayerManager.startListening {
+            startSpeechRecognition()
         }
     }
 
     private fun startSpeechRecognition() {
-        speechRecognitionManager.retryCount=0
+        speechRecognitionManager.retryCount = 0
         speechRecognitionManager.startSpeechRecognition()
     }
 
@@ -109,20 +100,21 @@ class ListeningService : Service(), ResultListener {
 
     override fun onDestroy() {
         super.onDestroy()
-        handler.removeCallbacks(runnableTask)
-        if (::mediaPlayer.isInitialized) {
-            mediaPlayer.release()
-        }
+        mediaPlayerManager.releaseMediaPlayer()
     }
 
     override fun onResult(numbers: List<Int>) {
-        // Pass the recognized numbers back to the UI using a broadcast or any other method
-        val intent = Intent("UPDATE_UI")
-        intent.putExtra("result", numbers[0].toString())
-        sendBroadcast(intent)
+        if (numbers.isNotEmpty()) {
+            val intent = Intent("UPDATE_UI")
+            intent.putExtra("numbers", ArrayList(numbers)) // Convert List<Int> to ArrayList<Int> to send via Intent
+            sendBroadcast(intent)
+        } else {
+            onError("000")
+        }
     }
 
     override fun onError(errorMessage: String) {
-        // If there's an error, simply log or handle it, but continue the cycles
+        UIintent.putExtra("result", errorMessage)
+        sendBroadcast(UIintent)
     }
 }

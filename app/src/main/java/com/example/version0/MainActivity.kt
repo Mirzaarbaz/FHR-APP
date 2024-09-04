@@ -6,6 +6,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.graphics.Paint
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.net.ConnectivityManager
@@ -13,6 +14,8 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.speech.tts.TextToSpeech
+import android.util.Log
+import android.util.TypedValue
 import android.view.View
 import android.widget.Button
 import android.widget.ImageButton
@@ -77,6 +80,27 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
     private lateinit var handler: Handler
 
 
+    private lateinit var mediaPlayerManager: MediaPlayerManager
+
+
+    private val listeningReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                "LISTENING_STARTED" -> {
+                    ButtonStyleUtils.setListeningStyle(this@MainActivity, startButton, card1)
+                    resultTextView.text="000"
+                    adjustTextSizeToFit(resultTextView)
+
+                }
+                "LISTENING_STOPPED" -> {
+                    ButtonStyleUtils.setStartStyle(this@MainActivity, startButton, card1)
+                }
+            }
+        }
+    }
+
+
+
     @SuppressLint("MissingInflatedId")
     @RequiresApi(Build.VERSION_CODES.Q)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -98,7 +122,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         progressBar = findViewById(R.id.progressBar)
         pendingPopup = findViewById(R.id.pending_popup)
 
-
         // Initialize ApiHelper
         val client = OkHttpClient()
         apiHelper = ApiHelper(client)
@@ -107,9 +130,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         graphInitializer = GraphInitializer(this, graph)
         clockManager = ClockManager(clockTextView)
 
-        // Initialize MediaPlayer with a prepared resource
-        initializeMediaPlayer()
-
         // Set the NetworkActionListener to this Activity
         NetworkUtils.setNetworkActionListener(this)
 
@@ -117,17 +137,69 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         speechRecognitionManager = SpeechRecognitionManager(this)
         speechRecognitionManager.setResultListener(this)
 
-//        // Start the service
-//        val serviceIntent = Intent(this, ListeningService::class.java)
-//        startService(serviceIntent)
+
+        // Register the broadcast receiver
+        val filter = IntentFilter().apply {
+            addAction("LISTENING_STARTED")
+            addAction("LISTENING_STOPPED")
+        }
+        registerReceiver(listeningReceiver, filter)
+
+        // Initialize MediaPlayerManager
+        mediaPlayerManager = MediaPlayerManager(this)
+        mediaPlayerManager.initializeMediaPlayer()
 
         // Register BroadcastReceiver
+        // Update the BroadcastReceiver to handle the "numbers" list
         uiUpdateReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
-                val result = intent?.getStringExtra("result")
-                resultTextView.text = result
+                val numbers = intent?.getIntegerArrayListExtra("numbers")
+                if (numbers != null && numbers.isNotEmpty()) {
+                    val currentValue = numbers[0]
+                    graphInitializer.addDataPoint(currentValue.toDouble())
+                    resultTextView.text = currentValue.toString()
+                    adjustTextSizeToFit(resultTextView)
+
+                    val formattedTime = "${clockTextView.text} (${convertTime(getCurrentTime())})"
+                    TableUtils.addDataToTable(
+                        this@MainActivity,
+                        speechLogTable,
+                        speechCounter,
+                        numbers,
+                        formattedTime
+                    )
+                    speechCounter++
+
+//                    ButtonStyleUtils.setStartStyle(this@MainActivity, startButton, card1)
+//                    listeningDone()
+
+                    // Prepare data for upload
+                    val (textViewData, tableData) = DataPreparationUtils.prepareDataForUpload(
+                        pname.text.toString(),
+                        dilation.text.toString(),
+                        clockTextView.text.toString(),
+                        speechLogTable
+                    )
+
+                    // Save data to the server
+                    apiHelper.saveOrUpdateData(patientId, textViewData, tableData) { success, id ->
+                        runOnUiThread {
+                            if (success) {
+                                if (patientId == null) {
+                                    patientId = id
+                                }
+                                Toast.makeText(this@MainActivity, "Data saved successfully", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(this@MainActivity, "Failed to save data", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                } else {
+                    onError("No number recognized")
+                }
             }
         }
+
 
         // Use IntentFilter and specify the exported flag
         val intentFilter1 = IntentFilter("UPDATE_UI")
@@ -146,7 +218,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
 
         // Call the function to update visibility based on the current connection status
         updatePendingPopupVisibility(this,pendingPopup)
-
 
         // Initialize UserNameDialog with a callback to update UI and determine which button was clicked
         userNameDialog = UserNameDialog(this, { name, number, buttonClicked ->
@@ -202,7 +273,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
 //            }
         }
 
-
         editButton.setOnClickListener {
             showUserNameDialog("editButton")
             isFirstClick = false
@@ -228,7 +298,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
                             Toast.makeText(this, "Data saved successfully", Toast.LENGTH_SHORT).show()
                             resetApp()
                         } else {
-//                            Toast.makeText(this, "Failed to save data", Toast.LENGTH_SHORT).show()
                             // Append new data to the list in shared preferences
                             saveDataOffline(this, textViewData, tableData, patientId)
                             resetApp()
@@ -239,7 +308,21 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         }
     }
 
-    // In your MainActivity
+    private fun adjustTextSizeToFit(textView: TextView) {
+        val paint = Paint().apply {
+            textSize = textView.textSize
+        }
+
+        val text = textView.text.toString()
+        val textWidth = paint.measureText(text)
+        val viewWidth = textView.width - textView.paddingLeft - textView.paddingRight
+
+        if (textWidth > viewWidth) {
+            val newTextSize = textView.textSize * (viewWidth / textWidth)
+            textView.setTextSize(TypedValue.COMPLEX_UNIT_PX, newTextSize)
+        }
+    }
+
 
     private fun startListeningService() {
         val intent = Intent(this, ListeningService::class.java)
@@ -254,22 +337,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         val intent = Intent(this, ListeningService::class.java)
         stopService(intent)
     }
-
-
-//    // Call to start the ListeningService
-//    private fun startListeningService() {
-//        val serviceIntent = Intent(this, ListeningService::class.java)
-//        startService(serviceIntent)
-//    }
-//
-//    // Call to stop the ListeningService
-//    private fun stopListeningService() {
-//        val serviceIntent = Intent(this, ListeningService::class.java)
-//        stopService(serviceIntent)
-//        handler.removeCallbacksAndMessages(null) // Stop the handler if it's running
-//    }
-
-
 
     override fun onNetworkActionCancelled() {
         // Handle network action cancellation (e.g., restart listening)
@@ -294,49 +361,56 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         patientId = null // Reset patientId for a new patient
     }
 
-
-    private fun initializeMediaPlayer() {
-        // Release any existing MediaPlayer instance
-        if (::mediaPlayer.isInitialized) {
-            mediaPlayer.release()
-        }
-
-        // Initialize MediaPlayer
-        mediaPlayer = MediaPlayer.create(this, R.raw.fhr)
-        mediaPlayer.setOnPreparedListener {
-            // MediaPlayer is prepared and ready to start
-        }
-        mediaPlayer.setOnCompletionListener {
-            runOnUiThread {
-                ButtonStyleUtils.setListeningStyle(this@MainActivity, startButton, card1)
-                speechRecognitionManager.startSpeechRecognition()
-            }
-        }
-    }
-
-
     private fun startListening() {
-        // Check if MediaPlayer is initialized and ready
-        if (!::mediaPlayer.isInitialized) {
-            initializeMediaPlayer()
-        }
-
-        // Get the AudioManager service
-        val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
-
-        // Set the volume to maximum
-        val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume - 1, 0)
-
-        // Start MediaPlayer playback
-        try {
-            mediaPlayer.start()
-        } catch (e: IllegalStateException) {
-            // Handle the exception or reinitialize MediaPlayer if needed
-            initializeMediaPlayer()
-            mediaPlayer.start()
+        mediaPlayerManager.startListening {
+            ButtonStyleUtils.setListeningStyle(this@MainActivity, startButton, card1)
+            speechRecognitionManager.startSpeechRecognition()
         }
     }
+
+//    private fun initializeMediaPlayer() {
+//        // Release any existing MediaPlayer instance
+//        if (::mediaPlayer.isInitialized) {
+//            mediaPlayer.release()
+//        }
+//
+//        // Initialize MediaPlayer
+//        mediaPlayer = MediaPlayer.create(this, R.raw.fhr)
+//        mediaPlayer.setOnPreparedListener {
+//            // MediaPlayer is prepared and ready to start
+//        }
+//        mediaPlayer.setOnCompletionListener {
+//            runOnUiThread {
+//                ButtonStyleUtils.setListeningStyle(this@MainActivity, startButton, card1)
+//                speechRecognitionManager.startSpeechRecognition()
+//            }
+//        }
+//    }
+// Replace startListening with a call to MediaPlayerManager's startListening method
+
+//
+//    private fun startListening() {
+//        // Check if MediaPlayer is initialized and ready
+//        if (!::mediaPlayer.isInitialized) {
+//            initializeMediaPlayer()
+//        }
+//
+//        // Get the AudioManager service
+//        val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
+//
+//        // Set the volume to maximum
+//        val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+//        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume - 1, 0)
+//
+//        // Start MediaPlayer playback
+//        try {
+//            mediaPlayer.start()
+//        } catch (e: IllegalStateException) {
+//            // Handle the exception or reinitialize MediaPlayer if needed
+//            initializeMediaPlayer()
+//            mediaPlayer.start()
+//        }
+//    }
 
     private fun resetApp() {
         isFirstClick = true
@@ -362,6 +436,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         super.onDestroy()
         unregisterReceiver(networkChangeReceiver)
         unregisterReceiver(uiUpdateReceiver)
+        unregisterReceiver(listeningReceiver)
+        mediaPlayerManager.releaseMediaPlayer()
         clockManager.stopClock()
         if (::mediaPlayer.isInitialized) {
             mediaPlayer.release() // Release MediaPlayer resources
@@ -389,9 +465,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         } else {
             PermissionUtils.requestNotificationPermission(this)
         }
-
-
-
     }
 
     private fun showNotification() {
@@ -410,6 +483,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
             val currentValue = numbers[0]
             graphInitializer.addDataPoint(currentValue.toDouble())
             resultTextView.text = currentValue.toString()
+            adjustTextSizeToFit(resultTextView)
 
             val formattedTime = "${clockTextView.text} (${convertTime(getCurrentTime())})"
             TableUtils.addDataToTable(
@@ -446,7 +520,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
                 }
             }
         } else {
-            onError("No number recognized")
+            onError("000")
         }
     }
 
