@@ -26,6 +26,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.example.version0.OfflineDataUtils.saveDataOffline
 import com.example.version0.OfflineDataUtils.uploadOfflineData
 import com.example.version0.PendingPopupUtils.updateOfflineCount
@@ -76,7 +77,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
 
     private lateinit var networkChangeReceiver: NetworkChangeReceiver
     private lateinit var pendingPopup: LinearLayout
-    private lateinit var uiUpdateReceiver: BroadcastReceiver
     private lateinit var handler: Handler
 
 
@@ -84,6 +84,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
 
 
     private val listeningReceiver = object : BroadcastReceiver() {
+        @SuppressLint("SetTextI18n")
         override fun onReceive(context: Context?, intent: Intent?) {
             when (intent?.action) {
                 "LISTENING_STARTED" -> {
@@ -99,9 +100,64 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         }
     }
 
+    private val uiUpdateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val numbers = intent?.getIntegerArrayListExtra("numbers")
+
+            if (numbers != null && numbers.isNotEmpty()) {
+                val currentValue = numbers[0]
+
+                // Update graph and result text view
+                graphInitializer.addDataPoint(currentValue.toDouble())
+                resultTextView.text = currentValue.toString()
+                adjustTextSizeToFit(resultTextView)
+
+                // Prepare formatted time
+                val formattedTime = "${clockTextView.text} (${convertTime(getCurrentTime())})"
+
+                // Update table with new data
+                TableUtils.addDataToTable(
+                    this@MainActivity,
+                    speechLogTable,
+                    speechCounter,
+                    numbers,
+                    formattedTime
+                )
+                speechCounter++
+
+                // Optionally update UI elements (Uncomment if needed)
+                // ButtonStyleUtils.setStartStyle(this@MainActivity, startButton, card1)
+                // listeningDone()
+
+                // Prepare data for upload
+                val (textViewData, tableData) = DataPreparationUtils.prepareDataForUpload(
+                    pname.text.toString(),
+                    dilation.text.toString(),
+                    clockTextView.text.toString(),
+                    speechLogTable
+                )
+
+                // Save data to the server
+                apiHelper.saveOrUpdateData(patientId, textViewData, tableData) { success, id ->
+                    runOnUiThread {
+                        if (success) {
+                            if (patientId == null) {
+                                patientId = id
+                            }
+                            Toast.makeText(this@MainActivity, "Data saved successfully", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(this@MainActivity, "Failed to save data", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            } else {
+                onError("No number recognized")
+            }
+        }
+    }
 
 
-    @SuppressLint("MissingInflatedId")
+    @SuppressLint("MissingInflatedId", "InlinedApi")
     @RequiresApi(Build.VERSION_CODES.Q)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -138,72 +194,22 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         speechRecognitionManager.setResultListener(this)
 
 
-        // Register the broadcast receiver
-        val filter = IntentFilter().apply {
+        // Register the receiver to listen for broadcasts
+        val listeningFilter = IntentFilter().apply {
             addAction("LISTENING_STARTED")
             addAction("LISTENING_STOPPED")
         }
-        registerReceiver(listeningReceiver, filter)
+        LocalBroadcastManager.getInstance(this).registerReceiver(listeningReceiver, listeningFilter)
+
+        val UIFilter = IntentFilter().apply {
+            addAction("UPDATE_UI") // Use the appropriate action string
+        }
+        LocalBroadcastManager.getInstance(this).registerReceiver(uiUpdateReceiver, UIFilter)
 
         // Initialize MediaPlayerManager
         mediaPlayerManager = MediaPlayerManager(this)
         mediaPlayerManager.initializeMediaPlayer()
 
-        // Register BroadcastReceiver
-        // Update the BroadcastReceiver to handle the "numbers" list
-        uiUpdateReceiver = object : BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                val numbers = intent?.getIntegerArrayListExtra("numbers")
-                if (numbers != null && numbers.isNotEmpty()) {
-                    val currentValue = numbers[0]
-                    graphInitializer.addDataPoint(currentValue.toDouble())
-                    resultTextView.text = currentValue.toString()
-                    adjustTextSizeToFit(resultTextView)
-
-                    val formattedTime = "${clockTextView.text} (${convertTime(getCurrentTime())})"
-                    TableUtils.addDataToTable(
-                        this@MainActivity,
-                        speechLogTable,
-                        speechCounter,
-                        numbers,
-                        formattedTime
-                    )
-                    speechCounter++
-
-//                    ButtonStyleUtils.setStartStyle(this@MainActivity, startButton, card1)
-//                    listeningDone()
-
-                    // Prepare data for upload
-                    val (textViewData, tableData) = DataPreparationUtils.prepareDataForUpload(
-                        pname.text.toString(),
-                        dilation.text.toString(),
-                        clockTextView.text.toString(),
-                        speechLogTable
-                    )
-
-                    // Save data to the server
-                    apiHelper.saveOrUpdateData(patientId, textViewData, tableData) { success, id ->
-                        runOnUiThread {
-                            if (success) {
-                                if (patientId == null) {
-                                    patientId = id
-                                }
-                                Toast.makeText(this@MainActivity, "Data saved successfully", Toast.LENGTH_SHORT).show()
-                            } else {
-                                Toast.makeText(this@MainActivity, "Failed to save data", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    }
-                } else {
-                    onError("No number recognized")
-                }
-            }
-        }
-
-
-        // Use IntentFilter and specify the exported flag
-        val intentFilter1 = IntentFilter("UPDATE_UI")
-        registerReceiver(uiUpdateReceiver, intentFilter1, Context.RECEIVER_NOT_EXPORTED)
 
         // Initialize the network change receiver
         networkChangeReceiver = NetworkChangeReceiver {
@@ -353,6 +359,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         )
     }
 
+    @SuppressLint("SetTextI18n")
     private fun updateUI(name: String, number: Int) {
         pname.text = "Name: $name"
         dilation.text = "|    Dilation: $number cm"
@@ -368,49 +375,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         }
     }
 
-//    private fun initializeMediaPlayer() {
-//        // Release any existing MediaPlayer instance
-//        if (::mediaPlayer.isInitialized) {
-//            mediaPlayer.release()
-//        }
-//
-//        // Initialize MediaPlayer
-//        mediaPlayer = MediaPlayer.create(this, R.raw.fhr)
-//        mediaPlayer.setOnPreparedListener {
-//            // MediaPlayer is prepared and ready to start
-//        }
-//        mediaPlayer.setOnCompletionListener {
-//            runOnUiThread {
-//                ButtonStyleUtils.setListeningStyle(this@MainActivity, startButton, card1)
-//                speechRecognitionManager.startSpeechRecognition()
-//            }
-//        }
-//    }
-// Replace startListening with a call to MediaPlayerManager's startListening method
-
-//
-//    private fun startListening() {
-//        // Check if MediaPlayer is initialized and ready
-//        if (!::mediaPlayer.isInitialized) {
-//            initializeMediaPlayer()
-//        }
-//
-//        // Get the AudioManager service
-//        val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
-//
-//        // Set the volume to maximum
-//        val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-//        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume - 1, 0)
-//
-//        // Start MediaPlayer playback
-//        try {
-//            mediaPlayer.start()
-//        } catch (e: IllegalStateException) {
-//            // Handle the exception or reinitialize MediaPlayer if needed
-//            initializeMediaPlayer()
-//            mediaPlayer.start()
-//        }
-//    }
 
     private fun resetApp() {
         isFirstClick = true

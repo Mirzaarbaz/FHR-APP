@@ -15,6 +15,7 @@ import android.os.IBinder
 import android.os.Looper
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 
 class ListeningService : Service(), ResultListener {
 
@@ -105,16 +106,26 @@ class ListeningService : Service(), ResultListener {
 
     override fun onResult(numbers: List<Int>) {
         if (numbers.isNotEmpty()) {
-            val intent = Intent("UPDATE_UI")
-            intent.putExtra("numbers", ArrayList(numbers)) // Convert List<Int> to ArrayList<Int> to send via Intent
-            sendBroadcast(intent)
+            // Convert List<Int> to ArrayList<Int>
+            val arrayListNumbers = ArrayList(numbers)
+            sendBroadcastWithData(arrayListNumbers)
         } else {
             onError("000")
         }
     }
 
+
+    // Sending broadcast from another component (e.g., ListeningService)
+    private fun sendBroadcastWithData(numbers: ArrayList<Int>) {
+        val intent = Intent("UPDATE_UI").apply {
+            putIntegerArrayListExtra("numbers", numbers)
+        }
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
+    }
+
     override fun onError(errorMessage: String) {
         UIintent.putExtra("result", errorMessage)
         sendBroadcast(UIintent)
+
     }
 }

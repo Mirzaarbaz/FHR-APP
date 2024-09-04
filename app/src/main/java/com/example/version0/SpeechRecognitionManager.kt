@@ -8,6 +8,7 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.widget.Toast
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.example.version0.ButtonStyleUtils
 import com.example.version0.MainActivity
 import com.example.version0.ResultListener
@@ -27,10 +28,8 @@ class SpeechRecognitionManager(private val context: Context) : RecognitionListen
 
     fun startSpeechRecognition() {
         // Send broadcast that listening has started
-        val intent1 = Intent("LISTENING_STARTED")
-        context.sendBroadcast(intent1)
+        sendBroadcastMessage("LISTENING_STARTED")
 
-        Toast.makeText(context, "rc " + retryCount.toString(), Toast.LENGTH_SHORT).show()
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale("hi", "IN")) // Hindi locale
@@ -60,8 +59,7 @@ class SpeechRecognitionManager(private val context: Context) : RecognitionListen
         }
 
         // Send broadcast that listening has stopped
-        val intent = Intent("LISTENING_STOPPED")
-        context.sendBroadcast(intent)
+        sendBroadcastMessage("LISTENING_STOPPED")
     }
 
     override fun onError(error: Int) {
@@ -69,8 +67,7 @@ class SpeechRecognitionManager(private val context: Context) : RecognitionListen
         restartSpeechRecognitionAfterDelay()
 
         // Send broadcast that listening has stopped
-        val intent = Intent("LISTENING_STOPPED")
-        context.sendBroadcast(intent)
+        sendBroadcastMessage("LISTENING_STOPPED")
     }
 
     fun restartSpeechRecognitionAfterDelay() {
@@ -89,6 +86,11 @@ class SpeechRecognitionManager(private val context: Context) : RecognitionListen
         }
     }
 
+    private fun sendBroadcastMessage(action: String) {
+        val intent = Intent(action)
+        // Use LocalBroadcastManager to send a local broadcast
+        LocalBroadcastManager.getInstance(context).sendBroadcast(intent)
+    }
     // Other required methods with empty implementations
     override fun onPartialResults(partialResults: Bundle?) {}
     override fun onEvent(eventType: Int, params: Bundle?) {}

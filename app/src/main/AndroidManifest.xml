@@ -40,7 +40,6 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
@@ -50,6 +49,13 @@
             android:exported="false"
             android:foregroundServiceType="mediaPlayback"
             tools:ignore="ForegroundServicePermission" />
+        <receiver
+            android:name=".MyBroadcastReceiver"
+            android:exported="false"> <!-- or "true" if you want it to be accessible to other apps -->
+            <intent-filter>
+                <action android:name="com.example.ACTION" />
+            </intent-filter>
+        </receiver>
 
         <provider
             android:name="androidx.core.content.FileProvider"
