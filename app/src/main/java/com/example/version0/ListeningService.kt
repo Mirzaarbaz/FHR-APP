@@ -46,18 +46,31 @@ class ListeningService : Service(), ResultListener {
 
         // Start the service as a foreground service
         startForegroundService()
+
+        // Start periodic task
+        startPeriodicTask()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        handler.postDelayed(runnableTask, interval)
+        // Restart the periodic task
+        startPeriodicTask()
         startForegroundService()
         return START_STICKY
+    }
+
+    private fun startPeriodicTask() {
+        handler.removeCallbacks(runnableTask) // Remove any previously scheduled tasks
+        handler.postDelayed(runnableTask, interval) // Schedule new task
     }
 
     private fun stopForegroundService() {
         stopForeground(true)
         stopSelf()
     }
+    private fun cancelHandlerTasks() {
+        handler.removeCallbacks(runnableTask)
+    }
+
 
     private val runnableTask = object : Runnable {
         override fun run() {
@@ -102,7 +115,11 @@ class ListeningService : Service(), ResultListener {
     override fun onDestroy() {
         super.onDestroy()
         mediaPlayerManager.releaseMediaPlayer()
+        cancelHandlerTasks()
+        stopForegroundService()
     }
+
+
 
     override fun onResult(numbers: List<Int>) {
         if (numbers.isNotEmpty()) {
@@ -128,4 +145,9 @@ class ListeningService : Service(), ResultListener {
         sendBroadcast(UIintent)
 
     }
+    override fun onUnbind(intent: Intent?): Boolean {
+        stopSelf() // Stop the service if no longer bound
+        return super.onUnbind(intent)
+    }
+
 }

@@ -105,13 +105,13 @@ class AppUtils {
             dilation: TextView,
             speechLogTable: TableLayout,
             resultTextView: TextView,
-            mediaPlayer: MediaPlayer,
+            mediaPlayerManager: MediaPlayerManager,
             clockManager: ClockManager,
             updateComponents: (GraphInitializer, ClockManager) -> Unit
         ) {
             // Stop any ongoing processes
             clockManager.stopClock()
-            mediaPlayer.release()
+            mediaPlayerManager.releaseMediaPlayer()
 
             // Clear the graph data
             clearGraph(graph)

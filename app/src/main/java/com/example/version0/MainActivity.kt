@@ -380,6 +380,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         isFirstClick = true
         speechCounter = 1
         stopListeningService()
+        mediaPlayerManager.releaseMediaPlayer()
         AppUtils.resetApp(
             this,
             clockTextView,
@@ -388,7 +389,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
             dilation,
             speechLogTable,
             resultTextView,
-            mediaPlayer,
+            mediaPlayerManager,
             clockManager,
         ) { newGraphInitializer, newClockManager ->
             graphInitializer = newGraphInitializer
@@ -401,11 +402,10 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
         unregisterReceiver(networkChangeReceiver)
         unregisterReceiver(uiUpdateReceiver)
         unregisterReceiver(listeningReceiver)
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(uiUpdateReceiver)
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(listeningReceiver)
         mediaPlayerManager.releaseMediaPlayer()
         clockManager.stopClock()
-        if (::mediaPlayer.isInitialized) {
-            mediaPlayer.release() // Release MediaPlayer resources
-        }
         stopListeningService()
     }
 
