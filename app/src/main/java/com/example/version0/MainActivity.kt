@@ -410,6 +410,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, ResultLis
     }
 
 
+
     private fun checkAndRequestPermissions() {
         // Check internet connection and show dialog if needed
         if (NetworkUtils.isInternetConnected(this)) {
