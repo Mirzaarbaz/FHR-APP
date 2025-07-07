@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.version0"
+    namespace = "com.uptsu.fhr"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.version0"
+        applicationId = "com.uptsu.fhr"
         minSdk = 24
         targetSdk = 34
         versionCode = 1

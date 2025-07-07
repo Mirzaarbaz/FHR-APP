@@ -1,8 +1,10 @@
 <resources>
-    <string name="app_name">version 0</string>
+    <string name="app_name">FHR</string>
 
         <string name="time">Time</string>
         <string name="heart_rate">Heart Rate</string>
         <string name="s_no">S No</string>
         <string name="start">Start</string>
-    </resources>
+    <string name="channel_name">My Channel Name</string>
+    <string name="q_measures_taken_for_managing_complications_if_any">Q Measures Taken for Managing Complications (if any):</string>
+</resources>

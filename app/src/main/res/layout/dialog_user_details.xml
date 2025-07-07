@@ -5,6 +5,25 @@
     android:orientation="vertical"
     android:padding="16dp">
 
+    <!-- Facility dropdown at the top -->
+    <Spinner
+        android:id="@+id/spinnerFacility"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/card_border"
+        android:padding="14dp"
+        android:layout_marginBottom="8dp"/>
+
+    <!-- Error message for facility dropdown -->
+    <TextView
+        android:id="@+id/facilityError"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="@android:color/holo_red_dark"
+        android:visibility="gone"
+        android:text="Please select a facility"/>
+
+    <!-- Enter Details heading -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -14,15 +33,54 @@
         android:textStyle="bold"
         android:textSize="20dp"/>
 
+    <!-- ID dropdown below Enter Details -->
+    <Spinner
+        android:id="@+id/spinnerIdType"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/card_border"
+        android:padding="14dp"
+        android:layout_marginBottom="8dp"/>
+
+    <!-- Error message for ID type dropdown -->
+    <TextView
+        android:id="@+id/idTypeError"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="@android:color/holo_red_dark"
+        android:visibility="gone"
+        android:text="Please select an ID type"/>
+
     <!-- EditText for user input -->
     <EditText
         android:id="@+id/editTextUserName"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Enter Name"
+        android:hint="Enter ID"
         android:layout_marginTop="8dp"
         android:background="@drawable/card_border"
         android:padding="14dp"/>
+
+    <EditText
+        android:id="@+id/editTextPatientName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Enter Patient Name"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/card_border"
+        android:padding="14dp"
+        android:visibility="gone"/>
+
+    <EditText
+        android:id="@+id/editTextMobileNo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Enter Patient Mobile Number"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/card_border"
+        android:padding="14dp"
+        android:visibility="gone"
+        android:inputType="phone"/>
 
     <!-- Horizontal layout for buttons and text view -->
     <LinearLayout
@@ -37,7 +95,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Dilation:"
+            android:text="Dilatation:"
             android:paddingEnd="16dp"
             android:textStyle="bold"
             android:textSize="16dp"/>
@@ -58,12 +116,12 @@
             android:id="@+id/textViewDilationValue"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="4"
-            android:textSize="16dp"
-            android:textStyle="bold"
-            android:textColor="@color/blue"
             android:paddingStart="16dp"
-            android:paddingEnd="6dp"/>
+            android:paddingEnd="6dp"
+            android:text="4"
+            android:textColor="@color/blue"
+            android:textSize="16dp"
+            android:textStyle="bold" />
 
         <!-- cm label -->
         <TextView
